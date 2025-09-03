@@ -1,14 +1,14 @@
+// src/app/page.tsx
 "use client";
 import { useState, useEffect } from 'react';
-import Hero from '@/components/Hero';
-import BentoGrid from '@/components/BentoGrid';
-import HackerIntro from '@/components/HackerIntro'; // <-- Import
+import HackerIntro from '@/components/HackerIntro';
+import Desktop from '@/components/os/Desktop';
 
 export default function Home() {
-    const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
-    // Kiểm tra xem người dùng đã xem intro trong session này chưa
+    // Kiểm tra sessionStorage để xem intro đã được xem trong phiên này chưa
     const hasSeenIntro = sessionStorage.getItem('introSeen');
     if (hasSeenIntro) {
       setShowIntro(false);
@@ -17,19 +17,14 @@ export default function Home() {
 
   const handleIntroComplete = () => {
     setShowIntro(false);
+    // Đánh dấu là đã xem intro
     sessionStorage.setItem('introSeen', 'true');
   };
 
-  if (showIntro) {
-    return <HackerIntro onAnimationComplete={handleIntroComplete} />;
-  }
   return (
-    // Chúng ta không cần thẻ <main> ở đây nữa vì đã có trong layout.tsx
-    // Sử dụng Fragment <>...</> để bao bọc các component
-    <>
-      <Hero />
-      <BentoGrid />
-      {/* Các section khác của trang chủ sẽ được thêm vào đây sau */}
-    </>
+    <div>
+      {showIntro && <HackerIntro onAnimationComplete={handleIntroComplete} />}
+      {!showIntro && <Desktop />}
+    </div>
   );
 }
