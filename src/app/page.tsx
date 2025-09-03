@@ -1,11 +1,15 @@
 // src/app/page.tsx
+import Hero from '@/components/Hero';
+import TechStack from '@/components/TechStack';
 
 export default function Home() {
   return (
-    <main className="flex items-center justify-center min-h-screen">
-      <h1 className="text-4xl font-bold text-center">
-        Portfolio Tuyệt Vời Của Tôi - Sắp ra mắt!
-      </h1>
-    </main>
-  )
+    // Chúng ta không cần thẻ <main> ở đây nữa vì đã có trong layout.tsx
+    // Sử dụng Fragment <>...</> để bao bọc các component
+    <>
+      <Hero />
+      <TechStack />
+      {/* Các section khác của trang chủ sẽ được thêm vào đây sau */}
+    </>
+  );
 }
