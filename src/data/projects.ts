@@ -15,23 +15,31 @@ export type Project = {
 // 2. Tạo một mảng chứa dữ liệu các dự án của bạn
 export const projects: Project[] = [
   {
-    slug: 'portfolio-website',
-    title: 'Chính trang Portfolio này',
-    description: 'Một portfolio "sống" được xây dựng bằng Next.js, TypeScript và Tailwind CSS.',
-    longDescription: 'Đây chính là dự án bạn đang xem. Nó được xây dựng từ đầu với mục tiêu không chỉ là một trang tĩnh mà là một ứng dụng web hoàn chỉnh, thể hiện các kỹ năng về frontend, backend (API routes), tương tác với database và quy trình CI/CD chuyên nghiệp. Toàn bộ mã nguồn đều công khai trên GitHub.',
-    imageUrl: '/images/project-portfolio.png', // <-- Bạn sẽ cần tạo ảnh này
-    tags: ['Next.js', 'TypeScript', 'Tailwind CSS', 'Vercel', 'Prisma'],
-    sourceUrl: 'https://github.com/your-username/your-portfolio-repo', // <-- Thay link GitHub của bạn
+    slug: 'mobifone-easyconnect',
+    title: 'Mobifone EasyConnect',
+    description: 'Tạo giao diện người dùng, sửa các logic về cơ sở dữ liệu cho dự án.',
+    longDescription: 'Là một Lập trình viên Frontend tại Mobifone IT, tôi đã tham gia vào dự án EasyConnect. Các nhiệm vụ chính bao gồm xây dựng các component giao diện mới theo thiết kế, đồng thời làm việc với backend team để sửa đổi và tối ưu hóa các logic liên quan đến cơ sở dữ liệu.',
+    imageUrl: '/images/project-easyconnect.png', // <-- Cần ảnh placeholder
+    tags: ['NextJs', 'Docker', 'NodeJS'],
+    sourceUrl: 'https://github.com/minh4doin1',
   },
   {
-    slug: 'e-commerce-platform',
-    title: 'Trang web Thương mại Điện tử',
-    description: 'Một nền tảng E-commerce đầy đủ tính năng với giỏ hàng, thanh toán và quản lý sản phẩm.',
-    longDescription: 'Dự án này mô phỏng một trang thương mại điện tử hiện đại. Người dùng có thể xem sản phẩm, thêm vào giỏ hàng, tiến hành thanh toán (giả lập). Admin có một trang dashboard riêng để quản lý sản phẩm, đơn hàng và người dùng. Backend được xây dựng bằng Node.js/Express và database là MongoDB.',
-    imageUrl: '/images/project-ecommerce.png', // <-- Bạn sẽ cần tạo ảnh này
-    tags: ['React', 'Node.js', 'Express', 'MongoDB', 'Redux'],
-    liveUrl: '#',
-    sourceUrl: '#',
+    slug: 'mobifone-econtract',
+    title: 'Mobifone Econtract',
+    description: 'Tạo giao diện người dùng, sửa các logic về các loại chữ kí.',
+    longDescription: 'Trong vai trò Thực tập sinh tại Mobifone IT, tôi đã đóng góp vào dự án Econtract, một hệ thống hợp đồng điện tử. Tôi chịu trách nhiệm phát triển giao diện người dùng và xử lý các logic phức tạp liên quan đến các loại chữ ký số, đảm bảo tính toàn vẹn và bảo mật.',
+    imageUrl: '/images/project-econtract.png', // <-- Cần ảnh placeholder
+    tags: ['Angular', 'NodeJS'],
+    sourceUrl: 'https://github.com/minh4doin1',
   },
-  // Thêm các dự án khác của bạn vào đây
+  {
+    slug: 'iot-security-monitoring',
+    title: 'Thiết bị IOT giám sát an toàn phòng máy tính',
+    description: 'Nghiên cứu và phát triển thiết bị IoT, xuất bản bài báo khoa học.',
+    longDescription: 'Đây là một dự án nghiên cứu khoa học khi tôi còn là thực tập sinh tại Viện Hàn lâm KH&KT. Dự án tập trung vào việc xây dựng một thiết bị IoT để giám sát các thông số an toàn trong phòng máy chủ. Kết quả của dự án đã được xuất bản thành bài báo tại tạp chí khoa học Đại học Tân Trào.',
+    imageUrl: '/images/project-iot.png', // <-- Cần ảnh placeholder
+    tags: ['IoT', 'WebServer', 'NCKH'],
+    sourceUrl: 'https://tudonghoangaynay.vn/ung-dung-cong-nghe-iot-va-hoc-may-trong-giam-sat-suc-khoe-va-phat-hien-te-nga-o-nguoi-cao-tuoi-10821.html', // Link bài báo
+  },
+  // Thêm các dự án khác nếu muốn
 ];
