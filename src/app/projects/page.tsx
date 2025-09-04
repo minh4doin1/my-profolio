@@ -1,18 +1,28 @@
-// src/app/projects/page.tsx
-import { projects } from '@/data/projects';
-import ProjectCard from '@/components/ProjectCard';
+"use client";
+import { motion } from 'framer-motion';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import FileExplorer from '@/components/os/FileExplorer';
 
-const ProjectsPage = () => {
+export default function ProjectsPage() {
   return (
-    <div>
-      <h1 className="text-4xl font-bold text-center mb-12">Các Dự Án Của Tôi</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {projects.map((project) => (
-          <ProjectCard key={project.slug} project={project} />
-        ))}
+    // Bọc toàn bộ trang bằng motion.div với layoutId
+    <motion.div 
+      layoutId="window-projects"
+      className="absolute inset-0 bg-gray-800 text-white flex flex-col"
+    >
+      {/* Title Bar giả lập */}
+      <div className="h-8 bg-gray-700 flex items-center justify-between px-4">
+        <h1 className="font-bold text-sm">Projects</h1>
+        <Link href="/" className="text-gray-300 hover:text-white">
+          <ArrowLeft size={18} />
+        </Link>
       </div>
-    </div>
-  );
-};
 
-export default ProjectsPage;
+      {/* Nội dung trang */}
+      <div className="flex-grow p-4 overflow-y-auto">
+        <FileExplorer />
+      </div>
+    </motion.div>
+  );
+}

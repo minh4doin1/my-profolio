@@ -1,42 +1,40 @@
 // src/components/os/Desktop.tsx
 "use client";
 import { useState } from 'react';
-import { useRouter } from 'next/navigation'; // <-- Import useRouter
+import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useMediaQuery } from '@/lib/hooks/useMediaQuery';
+
 import Window from './Window';
 import Icon from './Icon';
 import Taskbar from './Taskbar';
-import { motion, AnimatePresence } from 'framer-motion';
+import FileExplorer from './FileExplorer';
 
-// --- Định nghĩa Type (Thêm 'pageUrl' cho WindowApp) ---
-type WindowApp = { 
-  id: string; 
-  title: string; 
-  icon: string; 
-  content: React.ReactNode; 
-  pageUrl?: string; // <-- Thêm thuộc tính này
-  action?: never; 
-};
+// --- Định nghĩa Type & Apps ---
+type WindowApp = { id: string; title: string; icon: string; content: React.ReactNode; pageUrl?: string; action?: never; };
 type ActionApp = { id: string; title: string; icon: string; content?: never; action: () => void; };
 type App = WindowApp | ActionApp;
 type OpenWindow = WindowApp & { zIndex: number; };
 
-// --- Nội dung Cửa sổ ---
 const AboutContent = () => (<div>Nội dung giới thiệu...</div>);
-const ProjectsContent = () => (<div>Danh sách dự án...</div>);
 
-// --- Định nghĩa Apps (Thêm 'pageUrl') ---
 const apps: Record<string, App> = {
-  about: { id: 'about', title: 'About_Me.txt', icon: '/icons/txt.png', content: <AboutContent />, pageUrl: '/about' },
-  projects: { id: 'projects', title: 'Projects.exe', icon: '/icons/folder.png', content: <ProjectsContent />, pageUrl: '/projects' },
+  about: { id: 'about', title: 'About Me', icon: '/icons/txt.png', content: <AboutContent />, pageUrl: '/about' },
+  projects: { id: 'projects', title: 'Projects', icon: '/icons/folder.png', content: <FileExplorer />, pageUrl: '/projects' },
   cv: { id: 'cv', title: 'CV.pdf', icon: '/icons/pdf.png', action: () => window.open('/CV_NguyenCongNhatMinh.pdf', '_blank') },
 };
 
 const Desktop = () => {
-  const router = useRouter(); // <-- Khởi tạo router
+  const router = useRouter();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
   const [windows, setWindows] = useState<OpenWindow[]>([]);
   const [minimized, setMinimized] = useState<string[]>([]);
   const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
   const [nextZIndex, setNextZIndex] = useState(1);
+  
+  // State cho mobile view
+  const [mobileAppOpen, setMobileAppOpen] = useState<OpenWindow | null>(null);
 
   // ... (Các hàm openWindow, closeWindow, focusWindow, minimizeWindow giữ nguyên như trước)
   const openWindow = (appId: keyof typeof apps) => {
@@ -97,44 +95,70 @@ const Desktop = () => {
     }
   };
 
+  // --- Logic cho Mobile ---
+  const handleMobileAppOpen = (appId: keyof typeof apps) => {
+    const app = apps[appId];
+    if (app.action) { app.action(); return; }
+    if (app.content) {
+      setMobileAppOpen({ ...app, zIndex: 1 });
+    }
+  };
+
+  // --- RENDER ---
+  if (isMobile) {
+    return (
+      <div className="w-screen h-screen bg-gray-900 overflow-hidden relative clean-wallpaper">
+        <AnimatePresence>
+          {mobileAppOpen && (
+            <motion.div
+              key={mobileAppOpen.id}
+              className="absolute inset-0 bg-gray-800 z-20 p-4 flex flex-col"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ ease: 'easeInOut', duration: 0.4 }}
+            >
+              <div className="flex-grow overflow-y-auto">{mobileAppOpen.content}</div>
+              <button onClick={() => setMobileAppOpen(null)} className="mt-4 w-full bg-red-500 text-white py-2 rounded-lg">Close</button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Mobile Home Screen */}
+        <div className="p-4 grid grid-cols-4 gap-4">
+          {Object.values(apps).map(app => (
+            <Icon key={app.id} name={app.title} iconUrl={app.icon} onDoubleClick={() => handleMobileAppOpen(app.id as keyof typeof apps)} tooltip={''} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // --- Desktop View ---
   return (
-    <div className="w-screen h-screen bg-gray-900 overflow-hidden relative wallpaper">
+    <div className="w-screen h-screen bg-gray-900 overflow-hidden relative clean-wallpaper">
       {/* Desktop Icons */}
       <div className="p-4 flex flex-col flex-wrap h-full content-start">
         {Object.values(apps).map(app => (
-          <Icon 
-            key={app.id}
-            name={app.title} 
-            iconUrl={app.icon}
-            tooltip={app.id === 'about' ? 'Giới thiệu bản thân và kinh nghiệm' : app.id === 'projects' ? 'Các dự án đã thực hiện' : 'Mở CV trong tab mới'}
-            onDoubleClick={() => openWindow(app.id as keyof typeof apps)} 
-          />
+          <Icon key={app.id} name={app.title} iconUrl={app.icon} onDoubleClick={() => openWindow(app.id as keyof typeof apps)} tooltip={''} />
         ))}
       </div>
 
-      {/* --- SỬA LỖI KHÔNG CLICK ĐƯỢC ICON --- */}
-      {/* Wrapper cho các cửa sổ, không còn chặn sự kiện */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+      {/* Windows */}
+      <div className="absolute top-0 left-0 w-full h-[calc(100%-3rem)] pointer-events-none">
         <AnimatePresence>
           {windows.filter(win => !minimized.includes(win.id)).map(win => (
             <motion.div
               key={win.id}
-              initial={{ opacity: 0, scale: 0.95, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 50 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              // Thêm lại pointer-events-auto cho từng cửa sổ
               className="absolute top-0 left-0 w-full h-full pointer-events-auto"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
             >
               <Window
-                id={win.id}
-                title={win.title}
-                zIndex={win.zIndex}
-                isActive={win.id === activeWindowId}
-                onClose={closeWindow}
-                onFocus={focusWindow}
-                onMinimize={minimizeWindow}
-                onMaximize={() => handleMaximize(win.pageUrl)} // <-- Truyền hàm xử lý
+                id={win.id} title={win.title} zIndex={win.zIndex} isActive={win.id === activeWindowId}
+                onClose={closeWindow} onFocus={focusWindow} onMinimize={minimizeWindow}
+                onMaximize={() => handleMaximize(win.pageUrl)}
               >
                 {win.content}
               </Window>
@@ -143,12 +167,7 @@ const Desktop = () => {
         </AnimatePresence>
       </div>
       
-      <Taskbar 
-        openWindows={windows}
-        minimizedWindows={minimized}
-        onTaskbarClick={focusWindow}
-        activeWindowId={activeWindowId}
-      />
+      <Taskbar openWindows={windows} minimizedWindows={minimized} onTaskbarClick={focusWindow} activeWindowId={activeWindowId} />
     </div>
   );
 };
