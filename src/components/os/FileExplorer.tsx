@@ -1,10 +1,8 @@
-// src/components/os/FileExplorer.tsx
 "use client";
 import { useState } from 'react';
-import { projects, Project } from '@/data/projects'; // Import dữ liệu dự án của bạn
+import { projects, Project } from '@/data/projects';
 import { Folder, ArrowLeft } from 'lucide-react';
 
-// Component hiển thị chi tiết một dự án
 const ProjectDetailView = ({ project, onBack }: { project: Project, onBack: () => void }) => (
   <div>
     <button onClick={onBack} className="flex items-center space-x-2 mb-4 hover:text-blue-400">
@@ -31,7 +29,7 @@ const FileExplorer = () => {
   return (
     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
       {projects.map(project => (
-        <div 
+        <div
           key={project.slug}
           onClick={() => setSelectedProject(project)}
           className="flex flex-col items-center p-2 hover:bg-blue-500/20 rounded-md cursor-pointer"

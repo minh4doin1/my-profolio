@@ -1,4 +1,3 @@
-// src/app/page.tsx
 "use client";
 import { useState, useEffect } from 'react';
 import HackerIntro from '@/components/HackerIntro';
@@ -8,7 +7,6 @@ export default function Home() {
   const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
-    // Kiểm tra sessionStorage để xem intro đã được xem trong phiên này chưa
     const hasSeenIntro = sessionStorage.getItem('introSeen');
     if (hasSeenIntro) {
       setShowIntro(false);
@@ -17,12 +15,11 @@ export default function Home() {
 
   const handleIntroComplete = () => {
     setShowIntro(false);
-    // Đánh dấu là đã xem intro
     sessionStorage.setItem('introSeen', 'true');
   };
 
   return (
-    <div>
+    <div className="w-full h-full">
       {showIntro && <HackerIntro onAnimationComplete={handleIntroComplete} />}
       {!showIntro && <Desktop />}
     </div>

@@ -1,4 +1,3 @@
-// src/lib/hooks/useMediaQuery.ts
 "use client";
 import { useState, useEffect } from 'react';
 
@@ -13,6 +12,7 @@ export const useMediaQuery = (query: string): boolean => {
     const listener = () => {
       setMatches(media.matches);
     };
+    // Sử dụng addEventListener và removeEventListener để tương thích tốt hơn
     media.addEventListener('change', listener);
     return () => media.removeEventListener('change', listener);
   }, [matches, query]);
