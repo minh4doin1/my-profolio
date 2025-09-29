@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { Home, FileText, Folder, FileType2 } from 'lucide-react';
 
 type AppInfo = {

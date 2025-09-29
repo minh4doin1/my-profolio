@@ -1,7 +1,8 @@
 "use client";
 import { motion } from 'framer-motion';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
+import { useDesktopStore } from '@/store/useDesktopStore';
 
 type MaximizedWindowLayoutProps = {
   windowId: string;
@@ -10,8 +11,16 @@ type MaximizedWindowLayoutProps = {
 };
 
 const MaximizedWindowLayout = ({ windowId, title, children }: MaximizedWindowLayoutProps) => {
+  const router = useRouter();
+  const closeWindow = useDesktopStore((state) => state.closeWindow);
+
+  const handleClose = () => {
+    closeWindow(windowId);
+    router.push('/');
+  };
+
   return (
-    <motion.div
+    <motion.div 
       layoutId={`window-${windowId}`}
       className="w-full h-full bg-gray-800 text-white flex flex-col"
       initial={{ opacity: 0 }}
@@ -21,9 +30,9 @@ const MaximizedWindowLayout = ({ windowId, title, children }: MaximizedWindowLay
     >
       <div className="h-8 bg-gray-700 flex items-center justify-between px-4 flex-shrink-0">
         <h1 className="font-bold text-sm select-none">{title}</h1>
-        <Link href="/" className="control-btn hover:bg-red-500" title="Close (Go to Desktop)">
+        <button onClick={handleClose} className="control-btn hover:bg-red-500" title="Close (Go to Desktop)">
           <X size={14} />
-        </Link>
+        </button>
       </div>
       <div className="flex-grow p-4 overflow-y-auto">
         {children}
