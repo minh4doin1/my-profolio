@@ -6,6 +6,8 @@ import { useDesktopStore, App } from '@/store/useDesktopStore';
 import Window from './Window';
 import Icon from './Icon';
 import FileExplorer from './FileExplorer';
+import GitHubStats from './apps/GitHubStats';
+import BlogApp from './apps/BlogApp';
 
 const AboutContent = () => (<div>Nội dung giới thiệu...</div>);
 
@@ -13,6 +15,8 @@ const apps: Record<string, App> = {
   about: { id: 'about', title: 'About Me', content: <AboutContent />, pageUrl: '/about' },
   projects: { id: 'projects', title: 'Projects', content: <FileExplorer />, pageUrl: '/projects' },
   cv: { id: 'cv', title: 'CV.pdf', action: () => window.open('/CV_NguyenCongNhatMinh.pdf', '_blank') },
+  github: { id: 'github', title: 'GitHub Stats', content: <GitHubStats /> },
+  blog: { id: 'blog', title: 'Code.log', content: <BlogApp />, pageUrl: '/blog' },
 };
 
 const Desktop = () => {
