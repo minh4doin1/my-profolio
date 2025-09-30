@@ -23,11 +23,19 @@ export async function GET(
 
     const { data: post, error } = await query.single();
 
-    if (error) throw error;
-    if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+
+    if (!post) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
+
     return NextResponse.json(post);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
+    console.error("Error fetching post:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
