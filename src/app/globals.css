@@ -72,3 +72,23 @@ background-color: #111827;
     background-position: 0% 50%;
   }
 }
+/* Thêm vào cuối file globals.css để tùy chỉnh giao diện SimpleMDE */
+
+.editor-toolbar, .editor-statusbar, .editor-preview-side, .cm-s-easymde .CodeMirror {
+  background-color: #1F2937 !important; /* bg-gray-800 */
+  color: #D1D5DB !important; /* text-gray-300 */
+  border-color: #4B5563 !important; /* border-gray-600 */
+}
+
+.editor-toolbar a {
+  color: #D1D5DB !important;
+}
+
+.editor-toolbar a.active, .editor-toolbar a:hover {
+  background: #374151 !important; /* bg-gray-700 */
+  border-color: #4B5563 !important;
+}
+
+.cm-s-easymde .CodeMirror-cursor {
+  border-left-color: #F9FAFB !important; /* border-gray-50 */
+}

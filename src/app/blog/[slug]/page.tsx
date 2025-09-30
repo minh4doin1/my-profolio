@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import MaximizedWindowLayout from '@/components/os/MaximizedWindowLayout';
 import { Loader2, AlertTriangle } from 'lucide-react';
+import Image from 'next/image';
 
 type Post = {
   id: string;
@@ -12,6 +13,7 @@ type Post = {
   slug: string;
   content: string;
   created_at: string;
+  cover_image_url?: string;
 };
 
 const PostPage = () => {
@@ -54,6 +56,17 @@ const PostPage = () => {
     if (post) {
       return (
         <article className="prose prose-invert max-w-none">
+          {post.cover_image_url && (
+            <div className="relative w-full h-64 md:h-96 mb-8">
+              <Image
+                src={post.cover_image_url}
+                alt={post.title}
+                layout="fill"
+                objectFit="cover"
+                className="rounded-lg"
+              />
+            </div>
+          )}
           <h1>{post.title}</h1>
           <p className="text-gray-400">Published on: {new Date(post.created_at).toLocaleDateString()}</p>
           <ReactMarkdown remarkPlugins={[remarkGfm]}>

@@ -3,22 +3,73 @@ import { supabase } from '@/lib/supabase';
 
 export const revalidate = 60;
 
-export async function GET() {
-  try {
-    const { data: posts, error } = await supabase
-      .from('posts')
-      .select('id, title, slug, created_at')
-      .eq('published', true)
-      .order('created_at', { ascending: false });
+export async function GET(
+  request: Request,
+  { params }: { params: { slug: string } }
+) {
+  const slug = params.slug;
+  const { searchParams } = new URL(request.url);
+  const showAll = searchParams.get('all') === 'true';
 
-    if (error) {
-      throw error;
+  try {
+    let query = supabase
+      .from('posts')
+      .select('*')
+      .eq('slug', slug);
+    
+    if (!showAll) {
+      query = query.eq('published', true);
     }
 
-    return NextResponse.json(posts);
+    const { data: post, error } = await query.single();
+
+    if (error) throw error;
+    if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    return NextResponse.json(post);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error("Error fetching posts:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { slug: string } }
+) {
+  const slug = params.slug;
+  try {
+    const body = await request.json();
+    const { title, content, cover_image_url, published, slug: newSlug } = body;
+
+    const { data, error } = await supabase
+      .from('posts')
+      .update({ title, content, cover_image_url, published, slug: newSlug, updated_at: new Date().toISOString() })
+      .eq('slug', slug)
+      .select();
+
+    if (error) throw error;
+    return NextResponse.json(data);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { slug: string } }
+) {
+  const slug = params.slug;
+  try {
+    const { error } = await supabase
+      .from('posts')
+      .delete()
+      .eq('slug', slug);
+
+    if (error) throw error;
+    return NextResponse.json({ message: 'Post deleted successfully' });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

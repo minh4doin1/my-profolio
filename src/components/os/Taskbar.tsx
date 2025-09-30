@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
-import { Home, FileText, Folder, FileType2 } from 'lucide-react';
+import Link from 'next/link';
+import { Home, FileText, Folder, FileType2, Settings } from 'lucide-react';
 
 type AppInfo = {
   id: string;
@@ -13,24 +13,26 @@ type TaskbarProps = {
   openWindows: AppInfo[];
   minimizedWindows: string[];
   onTaskbarClick: (id: string) => void;
-  onStartMenuClick: (id: string) => void;
+  onStartMenuAppClick: (id: string) => void;
   activeWindowId: string | null;
 };
 
-const renderAppIcon = (appId: string) => {
+const renderAppIcon = (appId: string, size = 20) => {
   switch (appId) {
     case 'about':
-      return <FileText size={20} className="text-gray-300" />;
+      return <FileText size={size} className="text-gray-300" />;
     case 'projects':
-      return <Folder size={20} className="text-yellow-400" />;
+      return <Folder size={size} className="text-yellow-400" />;
     case 'cv':
-      return <FileType2 size={20} className="text-red-400" />;
+      return <FileType2 size={size} className="text-red-400" />;
+    case 'admin':
+      return <Settings size={size} className="text-gray-300" />;
     default:
       return null;
   }
 };
 
-const Taskbar = ({ apps, openWindows, minimizedWindows, onTaskbarClick, onStartMenuClick, activeWindowId }: TaskbarProps) => {
+const Taskbar = ({ apps, openWindows, minimizedWindows, onTaskbarClick, onStartMenuAppClick, activeWindowId }: TaskbarProps) => {
   const [time, setTime] = useState('');
   const [isStartMenuOpen, setIsStartMenuOpen] = useState(false);
   const startMenuRef = useRef<HTMLDivElement>(null);
@@ -64,20 +66,31 @@ const Taskbar = ({ apps, openWindows, minimizedWindows, onTaskbarClick, onStartM
             <Home size={20} />
           </button>
           {isStartMenuOpen && (
-            <div className="absolute bottom-full mb-2 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-2">
+            <div className="absolute bottom-full mb-2 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-lg p-2 flex flex-col space-y-1">
+              {/* --- THAY ĐỔI CHÍNH: START MENU MỚI --- */}
+              <Link href="/" onClick={() => setIsStartMenuOpen(false)} className="w-full flex items-center space-x-3 p-2 hover:bg-blue-500/30 rounded-md text-left">
+                <Home size={20} className="text-white" />
+                <span className="text-white">Desktop</span>
+              </Link>
+              <hr className="border-gray-600" />
               {Object.values(apps).map(app => (
                 <button
                   key={app.id}
                   onClick={() => {
-                    onStartMenuClick(app.id);
+                    onStartMenuAppClick(app.id);
                     setIsStartMenuOpen(false);
                   }}
                   className="w-full flex items-center space-x-3 p-2 hover:bg-blue-500/30 rounded-md text-left"
                 >
-                  {renderAppIcon(app.id)}
+                  {renderAppIcon(app.id, 24)}
                   <span className="text-white">{app.title}</span>
                 </button>
               ))}
+              <hr className="border-gray-600" />
+              <Link href="/admin" onClick={() => setIsStartMenuOpen(false)} className="w-full flex items-center space-x-3 p-2 hover:bg-blue-500/30 rounded-md text-left">
+                {renderAppIcon('admin', 24)}
+                <span className="text-white">Admin Panel</span>
+              </Link>
             </div>
           )}
         </div>

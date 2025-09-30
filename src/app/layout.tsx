@@ -11,6 +11,7 @@ const apps: Record<string, App> = {
   about: { id: 'about', title: 'About Me', content: <div/> },
   projects: { id: 'projects', title: 'Projects', content: <div/> },
   cv: { id: 'cv', title: 'CV.pdf', action: () => {} },
+  blog: { id: 'blog', title: 'Code.log', content: <div/> },
 };
 
 export default function RootLayout({
@@ -29,7 +30,7 @@ export default function RootLayout({
     }
   };
 
-  const handleStartMenuClick = (id: string) => {
+  const handleStartMenuAppClick = (id: string) => {
     openWindow(apps[id]);
     if (pathname !== '/') {
       router.push('/');
@@ -48,7 +49,7 @@ export default function RootLayout({
             openWindows={windows}
             minimizedWindows={minimized}
             onTaskbarClick={handleTaskbarClick}
-            onStartMenuClick={handleStartMenuClick}
+            onStartMenuAppClick={handleStartMenuAppClick}
             activeWindowId={activeWindowId}
           />
         </div>
