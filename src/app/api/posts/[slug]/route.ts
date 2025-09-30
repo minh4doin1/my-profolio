@@ -11,12 +11,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Slug is missing' }, { status: 400 });
     }
 
-    const { data: post, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const showAll = searchParams.get('all') === 'true';
+
+    let query = supabase
       .from('posts')
       .select('*')
-      .eq('slug', slug)
-      .eq('published', true)
-      .single();
+      .eq('slug', slug);
+    
+    if (!showAll) {
+      query = query.eq('published', true);
+    }
+
+    const { data: post, error } = await query.single();
 
     if (error && error.code !== 'PGRST116') {
       throw error;

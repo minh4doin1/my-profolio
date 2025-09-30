@@ -3,39 +3,22 @@ import { supabase } from '@/lib/supabase';
 
 export const revalidate = 60;
 
-export async function GET(
-  request: NextRequest, // <-- THAY ĐỔI 2: Sử dụng NextRequest thay vì Request
-  { params }: { params: { slug: string } }
-) {
-  const slug = params.slug;
-  const { searchParams } = new URL(request.url);
-  const showAll = searchParams.get('all') === 'true';
-
+export async function GET() {
   try {
-    let query = supabase
+    const { data: posts, error } = await supabase
       .from('posts')
-      .select('*')
-      .eq('slug', slug);
-    
-    if (!showAll) {
-      query = query.eq('published', true);
-    }
+      .select('id, title, slug, created_at')
+      .eq('published', true)
+      .order('created_at', { ascending: false });
 
-    const { data: post, error } = await query.single();
-
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       throw error;
     }
 
-    if (!post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
-    }
-
-    return NextResponse.json(post);
-
+    return NextResponse.json(posts);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error("Error fetching post:", error);
+    console.error("Error fetching posts:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
