@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'; // <-- THAY ĐỔI 1: Import NextRequest
 import { supabase } from '@/lib/supabase';
 
 export const revalidate = 60;
 
 export async function GET(
-  request: Request,
+  request: NextRequest, // <-- THAY ĐỔI 2: Sử dụng NextRequest thay vì Request
   { params }: { params: { slug: string } }
 ) {
   const slug = params.slug;
@@ -41,7 +41,7 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
+  request: NextRequest, // <-- THAY ĐỔI 2: Áp dụng cho cả PUT
   { params }: { params: { slug: string } }
 ) {
   const slug = params.slug;
@@ -64,7 +64,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest, // <-- THAY ĐỔI 2: Áp dụng cho cả DELETE
   { params }: { params: { slug: string } }
 ) {
   const slug = params.slug;
