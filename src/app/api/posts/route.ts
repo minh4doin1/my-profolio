@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'; // <-- THAY ĐỔI 1: Import NextRequest
+import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
 export const revalidate = 60;
 
+// Lấy TẤT CẢ bài viết đã published
 export async function GET() {
   try {
     const { data: posts, error } = await supabase
@@ -11,10 +12,7 @@ export async function GET() {
       .eq('published', true)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      throw error;
-    }
-
+    if (error) throw error;
     return NextResponse.json(posts);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
@@ -23,44 +21,32 @@ export async function GET() {
   }
 }
 
-export async function PUT(
-  request: NextRequest, // <-- THAY ĐỔI 2: Áp dụng cho cả PUT
-  { params }: { params: { slug: string } }
-) {
-  const slug = params.slug;
+// Tạo một bài viết MỚI
+export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, content, cover_image_url, published, slug: newSlug } = body;
+    const { title, slug, content, cover_image_url, published } = body;
+
+    if (!title || !slug || !content) {
+      return NextResponse.json({ message: 'Title, slug, and content are required' }, { status: 400 });
+    }
 
     const { data, error } = await supabase
       .from('posts')
-      .update({ title, content, cover_image_url, published, slug: newSlug, updated_at: new Date().toISOString() })
-      .eq('slug', slug)
+      .insert([{ title, slug, content, cover_image_url, published }])
       .select();
 
-    if (error) throw error;
-    return NextResponse.json(data);
+    if (error) {
+      if (error.code === '23505') {
+        return NextResponse.json({ message: 'Slug already exists.' }, { status: 409 });
+      }
+      throw error;
+    }
+
+    return NextResponse.json(data, { status: 201 });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-export async function DELETE(
-  request: NextRequest, // <-- THAY ĐỔI 2: Áp dụng cho cả DELETE
-  { params }: { params: { slug: string } }
-) {
-  const slug = params.slug;
-  try {
-    const { error } = await supabase
-      .from('posts')
-      .delete()
-      .eq('slug', slug);
-
-    if (error) throw error;
-    return NextResponse.json({ message: 'Post deleted successfully' });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Error creating post:", error);
+    return NextResponse.json({ message: error.message }, { status: 500 });
   }
 }
