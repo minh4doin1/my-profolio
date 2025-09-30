@@ -1,15 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
 export const revalidate = 60;
 
-export async function GET(
-  request: Request,
-  { params }: { params: { slug: string } }
-) {
-  const slug = params.slug;
-
+export async function GET(request: NextRequest) {
   try {
+    const slug = request.nextUrl.pathname.split('/').pop();
+
+    if (!slug) {
+      return NextResponse.json({ error: 'Slug is missing' }, { status: 400 });
+    }
+
     const { data: post, error } = await supabase
       .from('posts')
       .select('*')
@@ -17,7 +18,9 @@ export async function GET(
       .eq('published', true)
       .single();
 
-    if (error) throw error;
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
 
     if (!post) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
