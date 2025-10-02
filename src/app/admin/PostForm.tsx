@@ -1,10 +1,11 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from 'next/navigation';
+import slugify from 'slugify';
 import dynamic from 'next/dynamic';
-import "easymde/dist/easymde.min.css";
-import { Options } from "easymde";
 import Image from 'next/image';
+import "easymde/dist/easymde.min.css";
+import type { Options } from 'easymde';
 
 const SimpleMDE = dynamic(() => import('react-simplemde-editor'), { ssr: false });
 
@@ -19,12 +20,31 @@ export default function PostForm({ onSave, initialData }: { onSave: (data: any) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState('');
 
+  useEffect(() => {
+    if (!initialData) {
+      const newSlug = slugify(title, {
+        lower: true,
+        strict: true,
+        remove: /[*+~.()'"!:@]/g
+      });
+      setSlug(newSlug);
+    }
+  }, [title, initialData]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setMessage('');
 
-    const response = await onSave({ title, slug, content, cover_image_url: coverImageUrl, published });
+    const postData = {
+      title: title.trim(),
+      slug: slug.trim(),
+      content: content.trim(),
+      cover_image_url: coverImageUrl.trim(),
+      published,
+    };
+
+    const response = await onSave(postData);
 
     if (response.ok) {
       setMessage('Success!');
@@ -37,8 +57,7 @@ export default function PostForm({ onSave, initialData }: { onSave: (data: any) 
     setIsSubmitting(false);
   };
 
-  // Cấu hình các nút trên thanh công cụ của trình soạn thảo
-   const editorOptions = useMemo((): Options => {
+  const editorOptions = useMemo((): Options => {
     return {
       spellChecker: false,
       toolbar: [
@@ -60,35 +79,23 @@ export default function PostForm({ onSave, initialData }: { onSave: (data: any) 
       <div>
         <label htmlFor="slug">Slug</label>
         <input id="slug" type="text" value={slug} onChange={(e) => setSlug(e.target.value)} required className="w-full p-2 bg-gray-800 rounded"/>
+        <p className="text-xs text-gray-500 mt-1">URL-friendly identifier. Auto-generated from title for new posts.</p>
       </div>
       <div>
         <label htmlFor="coverImageUrl">Cover Image URL</label>
         <input id="coverImageUrl" type="text" value={coverImageUrl} onChange={(e) => setCoverImageUrl(e.target.value)} className="w-full p-2 bg-gray-800 rounded"/>
-        
         {coverImageUrl && (
           <div className="mt-4 p-2 border border-dashed border-gray-600 rounded-lg">
             <p className="text-sm text-gray-400 mb-2">Image Preview:</p>
             <div className="relative w-full h-64">
-              <Image
-                src={coverImageUrl}
-                alt="Cover image preview"
-                layout="fill"
-                objectFit="contain"
-                className="rounded"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
+              <Image src={coverImageUrl} alt="Cover image preview" layout="fill" objectFit="contain" className="rounded" />
             </div>
           </div>
         )}
       </div>
       <div>
         <label htmlFor="content">Content (Markdown)</label>
-        <SimpleMDE 
-          id="content" 
-          value={content} 
-          onChange={setContent}
-          options={editorOptions}
-        />
+        <SimpleMDE id="content" value={content} onChange={setContent} options={editorOptions} />
       </div>
       <div className="flex items-center space-x-2">
         <input id="published" type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="h-4 w-4"/>

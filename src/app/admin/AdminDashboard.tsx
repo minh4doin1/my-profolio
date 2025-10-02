@@ -17,10 +17,11 @@ const AdminDashboard = () => {
 
   const fetchPosts = async () => {
     setLoading(true);
-    // Gọi đến một API route mới để lấy TẤT CẢ bài viết (kể cả bản nháp)
-    const res = await fetch('/api/posts/all'); 
-    const data = await res.json();
-    setPosts(data);
+    const res = await fetch('/api/blog/all'); 
+    if (res.ok) {
+      const data = await res.json();
+      setPosts(data);
+    }
     setLoading(false);
   };
 
@@ -30,8 +31,7 @@ const AdminDashboard = () => {
 
   const handleDelete = async (slug: string) => {
     if (confirm('Are you sure you want to delete this post?')) {
-      await fetch(`/api/posts/${slug}`, { method: 'DELETE' });
-      // Tải lại danh sách sau khi xóa
+      await fetch(`/api/blog/${slug}`, { method: 'DELETE' });
       fetchPosts();
     }
   };

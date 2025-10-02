@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
-export const revalidate = 0; // Không cache route này
+export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -10,10 +10,14 @@ export async function GET() {
       .select('id, title, slug, published, created_at')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
     return NextResponse.json(posts);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
+    console.error("Error fetching all posts:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

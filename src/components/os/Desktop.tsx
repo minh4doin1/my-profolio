@@ -10,11 +10,18 @@ import GitHubStats from './apps/GitHubStats';
 import BlogApp from './apps/BlogApp';
 
 const AboutContent = () => (<div>Nội dung giới thiệu...</div>);
+const PdfViewer = ({ fileUrl }: { fileUrl: string }) => (
+  <iframe 
+    src={fileUrl} 
+    className="w-full h-full border-none" 
+    title="PDF Viewer"
+  ></iframe>
+);
 
 const apps: Record<string, App> = {
   about: { id: 'about', title: 'About Me', content: <AboutContent />, pageUrl: '/about' },
   projects: { id: 'projects', title: 'Projects', content: <FileExplorer />, pageUrl: '/projects' },
-  cv: { id: 'cv', title: 'CV.pdf', action: () => window.open('/CV_NguyenCongNhatMinh.pdf', '_blank') },
+  cv: { id: 'cv', title: 'CV.pdf', content: <PdfViewer fileUrl="/CV_NguyenCongNhatMinh.pdf" /> },
   github: { id: 'github', title: 'GitHub Stats', content: <GitHubStats /> },
   blog: { id: 'blog', title: 'Code.log', content: <BlogApp />, pageUrl: '/blog' },
 };

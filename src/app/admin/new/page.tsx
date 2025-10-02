@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import PostForm from "../PostForm";
+import PostForm from '../PostForm';
 
 export default function NewPostPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleSave = async (postData: any) => {
-    const response = await fetch('/api/posts', {
+    const response = await fetch('/api/blog', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(postData),

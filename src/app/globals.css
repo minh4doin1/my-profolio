@@ -57,8 +57,13 @@ body {
   @apply w-6 h-6 rounded-sm flex items-center justify-center text-gray-300 transition-colors;
 }
 
-.wallpaper {
-background-color: #111827;
+.clean-wallpaper {
+
+  background-image: url('../../public/my-wallpaper.JPG');
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 @keyframes gradient {
