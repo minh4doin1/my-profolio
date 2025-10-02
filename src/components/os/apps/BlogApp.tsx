@@ -11,7 +11,7 @@ type Post = {
 };
 
 const PostItem = ({ post }: { post: Post }) => (
-  <Link href={`/blog/${post.slug}`} className="block border-b border-gray-700 py-4 hover:bg-gray-700/50 px-2 rounded-md transition-colors">
+  <Link href={`/blog/${post.slug.trim()}`} className="block border-b border-gray-700 py-4 hover:bg-gray-700/50 px-2 rounded-md transition-colors">
     <h3 className="text-xl font-bold text-blue-400">{post.title}</h3>
     <p className="text-sm text-gray-400 mt-1">
       Published on: {new Date(post.created_at).toLocaleDateString()}
