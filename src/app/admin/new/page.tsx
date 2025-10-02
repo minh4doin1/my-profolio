@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+import withAdminAuth from '@/components/admin/withAdminAuth';
 import PostForm from '../PostForm';
 
-export default function NewPostPage() {
+const NewPostPageContent = () => {
   const handleSave = async (postData: any) => {
     const response = await fetch('/api/blog', {
       method: 'POST',
@@ -18,4 +19,8 @@ export default function NewPostPage() {
       <PostForm onSave={handleSave} />
     </div>
   );
-}
+};
+
+const ProtectedNewPostPage = withAdminAuth(NewPostPageContent);
+
+export default ProtectedNewPostPage;

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import PostForm from '../../PostForm';
 import { Loader2 } from 'lucide-react';
+import withAdminAuth from '@/components/admin/withAdminAuth';
 
 type PostData = {
   title: string;
@@ -12,14 +13,17 @@ type PostData = {
   published: boolean;
 };
 
-export default function EditPostPage() {
+const EditPostPageContent = () => {
   const params = useParams();
   const slug = params?.slug as string; 
   const [post, setPost] = useState<PostData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug) {
+      setLoading(false);
+      return;
+    };
     const fetchPost = async () => {
       const res = await fetch(`/api/blog/${slug}?all=true`); 
       if (res.ok) {
@@ -49,4 +53,8 @@ export default function EditPostPage() {
       <PostForm onSave={handleSave} initialData={post} />
     </div>
   );
-}
+};
+
+const ProtectedEditPostPage = withAdminAuth(EditPostPageContent);
+
+export default ProtectedEditPostPage;
