@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Taskbar from '@/components/os/Taskbar';
 import { useDesktopStore, App } from '@/store/useDesktopStore';
 import './globals.css';
+import { SessionProvider } from "next-auth/react";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -40,6 +41,7 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={`${inter.className} bg-gray-900 overflow-hidden`}>
+        <SessionProvider>
         <div className="w-screen h-screen clean-wallpaper">
           <main className="w-full h-[calc(100%-3rem)]">
             {children}
@@ -53,6 +55,7 @@ export default function RootLayout({
             activeWindowId={activeWindowId}
           />
         </div>
+        </SessionProvider>
       </body>
     </html>
   );

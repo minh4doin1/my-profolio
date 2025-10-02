@@ -8,6 +8,7 @@ import Icon from './Icon';
 import FileExplorer from './FileExplorer';
 import GitHubStats from './apps/GitHubStats';
 import BlogApp from './apps/BlogApp';
+import GuestbookApp from './apps/GuestbookApp';
 
 const AboutContent = () => (<div>Nội dung giới thiệu...</div>);
 const PdfViewer = ({ fileUrl }: { fileUrl: string }) => (
@@ -24,6 +25,7 @@ const apps: Record<string, App> = {
   cv: { id: 'cv', title: 'CV.pdf', content: <PdfViewer fileUrl="/CV_NguyenCongNhatMinh.pdf" /> },
   github: { id: 'github', title: 'GitHub Stats', content: <GitHubStats /> },
   blog: { id: 'blog', title: 'Code.log', content: <BlogApp />, pageUrl: '/blog' },
+  guestbook: { id: 'guestbook', title: 'Guestbook', content: <GuestbookApp /> },
 };
 
 const Desktop = () => {
