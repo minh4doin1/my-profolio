@@ -1,16 +1,14 @@
 "use client";
 import { useState, useEffect } from 'react';
-import LoginScreen from './LoginScreen';
+import LoginScreen from '../../app/admin/LoginScreen'; // Sẽ tạo file này ngay sau đây
 
 // Đây là một Higher-Order Component (HOC)
-export default function withAdminAuth(Component: React.ComponentType) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return function AuthenticatedComponent(props: any) {
+export default function withAdminAuth<P extends object>(Component: React.ComponentType<P>) {
+  return function AuthenticatedComponent(props: P) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-      // Kiểm tra "vé thông hành" trong sessionStorage
       const token = sessionStorage.getItem('admin-auth-token');
       if (token === 'secret-admin-token') {
         setIsAuthenticated(true);
