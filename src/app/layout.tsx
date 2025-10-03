@@ -5,6 +5,8 @@ import Taskbar from '@/components/os/Taskbar';
 import { useDesktopStore, App } from '@/store/useDesktopStore';
 import './globals.css';
 import { SessionProvider } from "next-auth/react";
+import { useDeviceDetection } from '@/lib/hooks/useDeviceDetection';
+import MobileNav from '@/components/os/apps/MobileNav';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -22,7 +24,8 @@ export default function RootLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { windows, minimized, activeWindowId, openWindow, focusWindow } = useDesktopStore();
+  const { windows, minimized, activeWindowId, openWindow, focusWindow, mobileApp, closeMobileApp  } = useDesktopStore();
+  const { isMobile } = useDeviceDetection();
 
   const handleTaskbarClick = (id: string) => {
     focusWindow(id);
@@ -37,24 +40,40 @@ export default function RootLayout({
       router.push('/');
     }
   };
+  const handleGoHome = () => {
+  if (pathname !== '/') {
+    router.push('/');
+  }
+  if (mobileApp) {
+    closeMobileApp();
+  }
+  };
 
   return (
     <html lang="vi">
       <body className={`${inter.className} bg-gray-900 overflow-hidden`}>
         <SessionProvider>
         <div className="w-screen h-screen clean-wallpaper">
-          <main className="w-full h-[calc(100%-3rem)]">
+          <main className={`w-full ${isMobile ? 'h-full' : 'h-[calc(100%-3rem)]'}`}>
             {children}
           </main>
-          <Taskbar
-            apps={apps}
-            openWindows={windows}
-            minimizedWindows={minimized}
-            onTaskbarClick={handleTaskbarClick}
-            onStartMenuAppClick={handleStartMenuAppClick}
-            activeWindowId={activeWindowId}
-          />
-        </div>
+          {isMobile ? (
+              <MobileNav 
+                openApp={mobileApp}
+                onCloseApp={closeMobileApp}
+                onGoHome={handleGoHome}
+              />
+            ) : (
+              <Taskbar
+                apps={apps}
+                openWindows={windows}
+                minimizedWindows={minimized}
+                onTaskbarClick={handleTaskbarClick}
+                onStartMenuAppClick={handleStartMenuAppClick}
+                activeWindowId={activeWindowId}
+              />
+            )}
+          </div>
         </SessionProvider>
       </body>
     </html>

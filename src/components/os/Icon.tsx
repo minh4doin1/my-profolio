@@ -5,10 +5,11 @@ type IconProps = {
   id: string;
   name: string;
   tooltip: string;
-  onDoubleClick: () => void;
+  onDoubleClick?: () => void;
+  onClick?: () => void;
 };
 
-const Icon = ({ id, name, tooltip, onDoubleClick }: IconProps) => {
+const Icon = ({ id, name, tooltip, onDoubleClick, onClick }: IconProps) => {
   const renderIcon = () => {
     switch (id) {
       case 'about':
@@ -25,6 +26,7 @@ const Icon = ({ id, name, tooltip, onDoubleClick }: IconProps) => {
   return (
     <div
       onDoubleClick={onDoubleClick}
+      onClick={onClick}
       className="group relative flex flex-col items-center w-24 p-2 hover:bg-blue-500/20 rounded-md cursor-pointer select-none"
     >
       {renderIcon()}

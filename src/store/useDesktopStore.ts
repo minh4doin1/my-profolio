@@ -10,10 +10,13 @@ type DesktopState = {
   minimized: string[];
   activeWindowId: string | null;
   nextZIndex: number;
+  mobileApp: App | null; 
   openWindow: (app: App) => void;
   closeWindow: (id: string) => void;
   focusWindow: (id: string) => void;
   minimizeWindow: (id: string) => void;
+  openMobileApp: (app: App) => void;
+  closeMobileApp: () => void;
 };
 
 export const useDesktopStore = create<DesktopState>((set, get) => ({
@@ -21,6 +24,7 @@ export const useDesktopStore = create<DesktopState>((set, get) => ({
   minimized: [],
   activeWindowId: null,
   nextZIndex: 1,
+  mobileApp: null,
 
   openWindow: (app) => {
     if (app.action) { app.action(); return; }
@@ -67,4 +71,6 @@ export const useDesktopStore = create<DesktopState>((set, get) => ({
         : state.activeWindowId,
     };
   }),
+  openMobileApp: (app) => set({ mobileApp: app }),
+  closeMobileApp: () => set({ mobileApp: null }),
 }));

@@ -7,7 +7,7 @@ type HackerIntroProps = {
   onAnimationComplete: () => void;
 };
 
-const postSequenceText = 'PTIT BIOS v1.0.2024\nCPU: Intel(R) Core(TM) i-Dev @ 4.00GHz\nMemory Test: 16384M OK\n\nInitializing NCM Portfolio OS... (Press [Enter] to skip)';
+const postSequenceText = 'For best experience use PC\nPTIT BIOS v1.0.2024\nCPU: Intel(R) Core(TM) i-Dev @ 4.00GHz\nMemory Test: 16384M OK\n\nInitializing NCM Portfolio OS... (Press [Enter] to skip)';
 const profileCommandText = '\n\nroot@ncm-portfolio:~# ./load-profile.sh';
 const profileBoxText = `\n+------------------------------------------------------+\n| PROFILE: NGUYEN CONG NHAT MINH                       |\n+------------------------------------------------------+\n|                                                      |\n|   TITLE    : Frontend Developer                      |\n|   LOCATION : Hanoi, Vietnam                          |\n|   STATUS   : Seeking new opportunities               |\n|   CONTACT  : minh2002811@gmail.com                   |\n|                                                      |\n+------------------------------------------------------+`;
 const compileText = `\n\n[COMPILING] src/projects/Mobifone_Econtract.ts ... SUCCESS\n[COMPILING] src/projects/Mobifone_EasyConnect.ts ... SUCCESS\n[COMPILING] src/projects/IoT_Security_Device.c ... SUCCESS\n\n[COMPILING] src/skills/Angular.module.ts ... LOADED\n[COMPILING] src/skills/React.component.jsx ... LOADED\n[COMPILING] src/skills/NextJS.server.ts ... LOADED\n\nAll modules compiled successfully.\nGUI is ready to be launched.`;
@@ -17,12 +17,15 @@ const HackerIntro = ({ onAnimationComplete }: HackerIntroProps) => {
   const [step, setStep] = useState(0);
   const [startTransition, setStartTransition] = useState(false);
   const [isSkipped, setIsSkipped] = useState(false);
+  const handleContinue = () => {
+        setIsSkipped(true);
+        setStartTransition(true);
+  };  
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Enter') {
-        setIsSkipped(true);
-        setStartTransition(true);
+        handleContinue();
       }
     };
 
@@ -63,6 +66,7 @@ const HackerIntro = ({ onAnimationComplete }: HackerIntroProps) => {
 
   return (
     <motion.div
+      onClick={handleContinue}
       className="fixed inset-0 bg-black text-green-400 p-4 sm:p-8 z-50 overflow-y-auto"
       style={{ fontFamily: "'Special Elite', monospace" }}
       initial={{ opacity: 1 }}
@@ -89,8 +93,8 @@ const HackerIntro = ({ onAnimationComplete }: HackerIntroProps) => {
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 0.5 }}
         >
-          <p className="text-white">Giao diện đồ họa đã sẵn sàng.</p>
-          <p className="text-yellow-400 animate-pulse mt-2">Nhấn [Enter] để khởi chạy.</p>
+          <p className="text-white">Ready</p>
+          <p className="text-yellow-400 animate-pulse mt-2">Press [Enter] or Tap screen to continue.</p>
         </motion.div>
       )}
     </motion.div>
