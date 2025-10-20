@@ -84,6 +84,11 @@ body {
   color: #D1D5DB !important; /* text-gray-300 */
   border-color: #4B5563 !important; /* border-gray-600 */
 }
+@media (max-width: 768px) {
+  .clean-wallpaper {
+    background-position: left center;
+  }
+}
 
 .editor-toolbar a {
   color: #D1D5DB !important;
