@@ -37,7 +37,7 @@ export const projects: Project[] = [
       "Vai trò": "Frontend Developer",
       "Thời gian": "2023 - 2024",
       "Lĩnh vực": "Hợp đồng điện tử",
-      "Công nghệ chính": "Next.js, Redux, Ant Design",
+      "Công nghệ chính": "Angular, Ant Design",
     },
     links: {
       live: 'https://mobifone-econtract.vn/',
@@ -65,7 +65,7 @@ export const projects: Project[] = [
       },
       {
         type: 'paragraph',
-        content: 'Với vai trò là Lập trình viên Frontend, tôi chịu trách nhiệm chính trong việc phát triển các thành phần giao diện cốt lõi bằng Next.js và TypeScript. Tôi đã sử dụng Redux Toolkit để quản lý trạng thái phức tạp của ứng dụng, từ thông tin người dùng, danh sách hợp đồng cho đến luồng ký kết nhiều bước. Thư viện Ant Design được tùy chỉnh sâu để phù hợp với bộ nhận diện thương hiệu của Mobifone.',
+        content: 'Với vai trò là Lập trình viên Frontend, tôi chịu trách nhiệm trong việc phát triển các thành phần giao diện bằng Angular và TypeScript. Tôi đã quản lý trạng thái phức tạp của ứng dụng, từ thông tin người dùng, danh sách hợp đồng cho đến luồng ký kết nhiều bước. Thư viện Ant Design được tùy chỉnh sâu để phù hợp với bộ nhận diện thương hiệu của Mobifone.',
       },
       {
         type: 'heading',
@@ -130,7 +130,7 @@ export const projects: Project[] = [
       },
       {
         type: 'paragraph',
-        content: 'Trong dự án này, tôi tham gia với vai trò Frontend Developer, tập trung vào việc xây dựng giao diện người dùng bằng React và TypeScript. Chúng tôi đã chọn Styled-Components để tạo ra một hệ thống component-based styling linh hoạt và dễ bảo trì. Toàn bộ trạng thái của ứng dụng, từ dữ liệu người dùng, danh sách gói cước, đến lịch sử giao dịch, được quản lý tập trung bằng Redux.',
+        content: 'Trong dự án này, tôi tham gia với vai trò Frontend Developer, tập trung vào việc xây dựng giao diện người dùng bằng React và TypeScript. Chúng tôi đã chọn Styled-Components để tạo ra một hệ thống component-based styling linh hoạt và dễ bảo trì. Toàn bộ trạng thái của ứng dụng, từ dữ liệu người dùng, danh sách gói cước, đến lịch sử giao dịch, được quản lý tập trung.',
       },
       {
         type: 'heading',
@@ -142,7 +142,7 @@ export const projects: Project[] = [
         items: [
           'Phát triển module live chat kết nối nhiều kênh mạng xã hội vào 1 nền tảng chat',
           'Xây dựng giao diện đăng ký, thay đổi và hủy các gói cước data/thoại một cách trực quan.',
-          'Tích hợp với các REST API từ backend để lấy và cập nhật dữ liệu thuê bao theo thời gian thực.',
+          'Tích hợp với các API từ backend để lấy và cập nhật dữ liệu thuê bao theo thời gian thực.',
           'Tạo các biểu đồ báo cáo đơn giản bằng thư viện Chart.js để hiển thị thống kê dịch vụ.',
         ],
       },
