@@ -1,14 +1,23 @@
-"use client"; // Dùng client component để có thể sử dụng hooks và component ProjectDetailView
+"use client"; // Vẫn là client component vì chúng ta cần useRouter
 
-import { useParams, useRouter, notFound } from 'next/navigation';
+// Bỏ useParams, vì chúng ta sẽ nhận params qua props
+import { useRouter, notFound } from 'next/navigation'; 
 import { projects } from '@/data/projects';
 import { ProjectDetailView } from '@/components/os/FileExplorer';
 import MaximizedWindowLayout from '@/components/os/MaximizedWindowLayout';
 
-export default function ProjectPage() {
-  const params = useParams();
+// SỬA LỖI 1: Định nghĩa kiểu cho props mà trang sẽ nhận
+type PageProps = {
+  params: {
+    slug: string;
+  };
+};
+
+// SỬA LỖI 2: Component giờ đây chấp nhận props theo đúng chuẩn của Next.js
+export default function ProjectPage({ params }: PageProps) {
   const router = useRouter();
-  const slug = params?.slug as string;
+  // SỬA LỖI 3: Lấy slug trực tiếp từ props, không cần dùng hook
+  const slug = params.slug;
 
   // Tìm dự án tương ứng với slug
   const project = projects.find(p => p.slug === slug);
@@ -20,8 +29,10 @@ export default function ProjectPage() {
 
   return (
     <MaximizedWindowLayout windowId="projects" title={project.title}>
-      {/* Tái sử dụng component ProjectDetailView */}
-      <ProjectDetailView project={project} onBack={() => router.push('/')} />
+      <ProjectDetailView 
+        project={project} 
+        onBack={() => router.push('/')} 
+      />
     </MaximizedWindowLayout>
   );
 }
