@@ -1,5 +1,5 @@
 "use client";
-import { FileText, Folder, FileType2 } from 'lucide-react';
+import { FileText, Folder, FileType2, BookUser } from 'lucide-react';
 
 type IconProps = {
   id: string;
@@ -16,6 +16,10 @@ const Icon = ({ id, name, tooltip, onDoubleClick, onClick }: IconProps) => {
         return <FileText size={48} className="text-gray-300" />;
       case 'projects':
         return <Folder size={48} className="text-yellow-400" />;
+      case 'blog':
+        return <FileText size={48} className="text-blue-300" />;
+      case 'guestbook':
+        return <BookUser size={48} className="text-purple-300" />;
       case 'cv':
         return <FileType2 size={48} className="text-red-400" />;
       default:
@@ -25,6 +29,7 @@ const Icon = ({ id, name, tooltip, onDoubleClick, onClick }: IconProps) => {
 
   return (
     <div
+      data-tour-id={`icon-${id}`}
       onDoubleClick={onDoubleClick}
       onClick={onClick}
       className="group relative flex flex-col items-center w-24 p-2 hover:bg-blue-500/20 rounded-md cursor-pointer select-none"

@@ -13,6 +13,7 @@ const MobileNav = ({ openApp, onCloseApp, onGoHome }: MobileNavProps) => {
   return (
     <div className="absolute bottom-0 left-0 right-0 h-12 bg-gray-900/70 backdrop-blur-lg flex items-center justify-around px-2 border-t border-gray-700 z-[9999]">
       <button
+        data-tour-id="mobile-home-btn"
         onClick={onGoHome}
         className="flex flex-col items-center justify-center text-white w-16 h-full"
       >

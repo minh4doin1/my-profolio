@@ -102,3 +102,25 @@ body {
 .cm-s-easymde .CodeMirror-cursor {
   border-left-color: #F9FAFB !important; /* border-gray-50 */
 }
+.tour-highlight {
+  position: fixed;
+  border-radius: 8px;
+  /* SỬA LỖI: Dùng background thay vì box-shadow để không che overlay */
+  background: transparent;
+  border: 2px solid #3b82f6; /* Màu xanh của blue-500 */
+  box-shadow: 0 0 15px #3b82f6;
+  
+  z-index: 10003;
+  /* THÊM MỚI: Hiệu ứng chuyển động mượt mà */
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  
+  /* THÊM MỚI: Animation nhấp nháy nhẹ để thu hút chú ý */
+  animation: pulse-glow 2s infinite;
+}
+
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 15px #3b82f6; }
+  50% { box-shadow: 0 0 25px #3b82f6; }
+  100% { box-shadow: 0 0 15px #3b82f6; }
+}

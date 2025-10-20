@@ -25,6 +25,7 @@ const Window = ({ id, title, children, zIndex, isActive, onClose, onFocus, onMin
 
   return (
     <Rnd
+      data-tour-id="window-main"
       default={{
         x: Math.max(0, window.innerWidth / 2 - 300),
         y: Math.max(0, window.innerHeight / 2 - 225),
@@ -50,7 +51,7 @@ const Window = ({ id, title, children, zIndex, isActive, onClose, onFocus, onMin
       >
         <div className={`drag-handle h-8 flex items-center justify-between px-2 rounded-t-lg cursor-move flex-shrink-0`}>
           <span className="font-bold text-sm text-white select-none">{title}</span>
-          <div className="flex items-center space-x-1">
+          <div data-tour-id="window-controls" className="flex items-center space-x-1">
             <button onClick={() => onMinimize(id)} className="control-btn hover:bg-gray-600"><Minus size={12} /></button>
             <button onClick={onMaximize} className="control-btn hover:bg-gray-600"><Maximize size={12} /></button>
             <button onClick={() => onClose(id)} className="control-btn hover:bg-red-500"><X size={14} /></button>
