@@ -23,12 +23,14 @@ export type Project = {
     repo?: string;
   };
   content: ContentBlock[];
+  summary: string;
 };
 
 export const projects: Project[] = [
   {
     slug: 'mobifone-econtract',
     title: 'Mobifone E-Contract',
+    summary: 'Số hóa quy trình ký kết hợp đồng, giúp doanh nghiệp tiết kiệm thời gian, chi phí và nâng cao tính bảo mật.',
     tags: ['Next.js', 'TypeScript', 'Tailwind CSS', 'Redux Toolkit', 'Ant Design'],
     coverImage: '/projects/econtract-logo.png',
     metadata: {
@@ -93,6 +95,7 @@ export const projects: Project[] = [
   {
     slug: 'mobifone-easyconnect',
     title: 'Mobifone EasyConnect',
+    summary: 'Xây dựng một Single Page Application (SPA) để hiện đại hóa và hợp nhất các công cụ quản lý thông tin khách hàng và tổng đài đa kênh.',
     tags: ['React.js', 'TypeScript', 'Redux', 'Styled-Components', 'REST API'],
     coverImage: '/projects/easy-connect.png', // Đặt ảnh này trong public/projects/
     metadata: {
@@ -157,6 +160,7 @@ export const projects: Project[] = [
   {
     slug: 'iot-health-device',
     title: 'IoT Health Device',
+    summary: 'Thiết bị an ninh IoT chi phí thấp sử dụng ESP32 và cảm biến để theo dõi sức khỏe và gửi cảnh báo ngã theo thời gian thực.',
     tags: ['C/C++', 'Embedded Systems', 'IoT', 'MQTT', 'ESP32'],
     coverImage: '/projects/iothealth.jpg', // Đặt ảnh này trong public/projects/
     metadata: {
@@ -222,6 +226,7 @@ export const projects: Project[] = [
   {
     slug: 'iot-water-monitor-device',
     title: 'IoT Water Monitor App',
+    summary: 'App theo dõi các thông số nước',
     tags: ['C/C++', 'Embedded Systems', 'IoT', 'MQTT', 'ESP32'],
     coverImage: '/projects/aqualogo.jpg', // Đặt ảnh này trong public/projects/
     metadata: {
