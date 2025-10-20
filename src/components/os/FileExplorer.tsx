@@ -44,7 +44,7 @@ const ContentRenderer = ({ block }: { block: ContentBlock }) => {
 };
 
 // Giao diện xem chi tiết dự án
-const ProjectDetailView = ({ project, onBack }: { project: Project, onBack: () => void }) => (
+export const ProjectDetailView = ({ project, onBack }: { project: Project, onBack: () => void }) => (
   <div className="prose prose-invert max-w-none">
     <button onClick={onBack} className="flex items-center space-x-2 mb-6 text-blue-400 hover:underline">
       <ArrowLeft size={18} />
