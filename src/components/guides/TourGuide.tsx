@@ -57,7 +57,7 @@ const TourGuide = ({ steps, onComplete }: TourGuideProps) => {
   const step = steps[currentStep];
 
   if (!targetRect) {
-    return <div className="tour-overlay fixed inset-0 bg-black/50 z-[10002]" />;
+    return <div className="tour-overlay" />;
   }
 
   const position = step.position || 'bottom';
@@ -70,6 +70,7 @@ const TourGuide = ({ steps, onComplete }: TourGuideProps) => {
   const tooltipStyles: CSSProperties = {
     width: `${TOOLTIP_WIDTH}px`,
     maxWidth: `calc(100vw - ${VIEWPORT_PADDING * 2}px)`,
+    zIndex: 100000,
   };
 
   // Tính toán vị trí động
@@ -99,9 +100,8 @@ const TourGuide = ({ steps, onComplete }: TourGuideProps) => {
   }
   // [KẾT THÚC THAY ĐỔI LỚN]
 
-  return (
-    <div className="fixed inset-0 z-[10001]">
-      <div className="tour-overlay fixed inset-0 bg-black/50 z-[10002]" />
+return (
+    <>
       <div
         className="tour-highlight"
         style={{
@@ -114,8 +114,7 @@ const TourGuide = ({ steps, onComplete }: TourGuideProps) => {
       <AnimatePresence>
         <motion.div
           key={currentStep}
-          // Bỏ class w-72 vì đã set width trong style
-          className="absolute bg-gray-800 text-white p-4 rounded-lg shadow-2xl border border-gray-700 z-[10004]"
+          className="absolute bg-gray-800 text-white p-4 rounded-lg shadow-2xl border border-gray-700"
           style={tooltipStyles}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -134,7 +133,7 @@ const TourGuide = ({ steps, onComplete }: TourGuideProps) => {
           </button>
         </motion.div>
       </AnimatePresence>
-    </div>
+    </>
   );
 };
 
