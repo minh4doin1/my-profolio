@@ -21,58 +21,49 @@ const TourGuide = ({ steps, onComplete }: TourGuideProps) => {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
   const handleNext = useCallback((skipAction = false) => {
-    if (!skipAction) {
-      setTargetRect(null);
-    }
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      onComplete();
-    }
+    if (!skipAction) setTargetRect(null);
+    if (currentStep < steps.length - 1) setCurrentStep(currentStep + 1);
+    else onComplete();
   }, [currentStep, steps, onComplete]);
 
-  // Effect chính để chạy các bước tour
   useEffect(() => {
     const step = steps[currentStep];
     if (!step) return;
 
-    if (step.action) {
-      step.action();
-    }
+    if (step.action) step.action();
 
-    // SỬA LỖI 1: Tăng thời gian chờ để animation của cửa sổ hoàn thành
+    // SỬA LỖI 2: Dùng requestAnimationFrame để chờ layout ổn định
     const timer = setTimeout(() => {
-      const element = document.querySelector(step.selector);
-      if (element) {
-        setTargetRect(element.getBoundingClientRect());
-      } else {
-        console.warn(`TourGuide: Element not found for selector: "${step.selector}". Skipping step.`);
-        handleNext(true);
-      }
-    }, 300); // Tăng lên 300ms
+      // Yêu cầu trình duyệt chạy code này trước lần vẽ tiếp theo
+      requestAnimationFrame(() => {
+        const element = document.querySelector(step.selector);
+        if (element) {
+          setTargetRect(element.getBoundingClientRect());
+        } else {
+          console.warn(`TourGuide: Element not found for selector: "${step.selector}". Skipping step.`);
+          handleNext(true);
+        }
+      });
+    }, 250); // Giữ một khoảng chờ nhỏ để component mount
 
     return () => clearTimeout(timer);
   }, [currentStep, steps, handleNext]);
 
-  // SỬA LỖI 2: Thêm effect để tour tự cập nhật vị trí khi resize
+  // Effect để tour tự cập nhật vị trí khi resize (giữ nguyên)
   useEffect(() => {
     const recalculatePosition = () => {
       const step = steps[currentStep];
-      if (!step || !targetRect) return; // Chỉ tính lại khi đã có vị trí ban đầu
+      if (!step || !targetRect) return;
       const element = document.querySelector(step.selector);
-      if (element) {
-        setTargetRect(element.getBoundingClientRect());
-      }
+      if (element) setTargetRect(element.getBoundingClientRect());
     };
-
     window.addEventListener('resize', recalculatePosition);
     return () => window.removeEventListener('resize', recalculatePosition);
-  }, [currentStep, steps, targetRect]); // Phụ thuộc vào targetRect để chỉ chạy khi cần
+  }, [currentStep, steps, targetRect]);
 
-  if (!targetRect) {
-    return <div className="tour-overlay" />;
-  }
-
+  // ... (phần còn lại của component không thay đổi)
+  if (!targetRect) return <div className="tour-overlay" />;
+  
   const step = steps[currentStep];
   const position = step.position || 'bottom';
   const TOOLTIP_WIDTH = 288;
@@ -81,7 +72,7 @@ const TourGuide = ({ steps, onComplete }: TourGuideProps) => {
   const tooltipStyles: CSSProperties = {
     width: `${TOOLTIP_WIDTH}px`,
     maxWidth: `calc(100vw - ${VIEWPORT_PADDING * 2}px)`,
-    zIndex: 100004, // Z-index cao nhất
+    zIndex: 100004,
   };
 
   if (position === 'top' || position === 'bottom') {
@@ -122,6 +113,7 @@ const TourGuide = ({ steps, onComplete }: TourGuideProps) => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 10 }}
         >
+          {/* ... nội dung tooltip ... */}
           <h3 className="font-bold text-lg mb-2 text-blue-400">{step.title}</h3>
           <p className="text-sm text-gray-300">{step.content}</p>
           <div className="flex justify-between items-center mt-4">
