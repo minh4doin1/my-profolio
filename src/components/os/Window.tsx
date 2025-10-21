@@ -16,13 +16,6 @@ type WindowProps = {
 };
 
 const Window = ({ id, title, children, zIndex, isActive, onClose, onFocus, onMinimize, onMaximize }: WindowProps) => {
-  const windowClasses = `
-    shadow-2xl flex flex-col w-full h-full
-    bg-gray-800/80 backdrop-blur-xl 
-    border rounded-lg transition-colors duration-300
-    ${isActive ? 'border-blue-400' : 'border-gray-600'}
-  `;
-
   return (
     <Rnd
       data-tour-id="window-main"
@@ -35,32 +28,29 @@ const Window = ({ id, title, children, zIndex, isActive, onClose, onFocus, onMin
       minWidth={320}
       minHeight={250}
       bounds="parent"
-      className="pointer-events-auto" // Bật lại pointer events cho chính cửa sổ
+      className="pointer-events-auto"
       style={{ zIndex }}
       onDragStart={() => onFocus(id)}
       onMouseDown={() => onFocus(id)}
       dragHandleClassName="drag-handle"
+      as={motion.div}
+      layoutId={`window-${id}`}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9 }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
     >
-      <motion.div
-        layoutId={`window-${id}`}
-        className={windowClasses}
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
-      >
-        <div className={`drag-handle h-8 flex items-center justify-between px-2 rounded-t-lg cursor-move flex-shrink-0`}>
-          <span className="font-bold text-sm text-white select-none">{title}</span>
-          <div data-tour-id="window-controls" className="flex items-center space-x-1">
-            <button onClick={() => onMinimize(id)} className="control-btn hover:bg-gray-600"><Minus size={12} /></button>
-            <button onClick={onMaximize} className="control-btn hover:bg-gray-600"><Maximize size={12} /></button>
-            <button onClick={() => onClose(id)} className="control-btn hover:bg-red-500"><X size={14} /></button>
-          </div>
+      <div className={`drag-handle h-8 flex items-center justify-between px-2 rounded-t-lg cursor-move flex-shrink-0`}>
+        <span className="font-bold text-sm text-white select-none">{title}</span>
+        <div data-tour-id="window-controls" className="flex items-center space-x-1">
+          <button onClick={() => onMinimize(id)} className="control-btn hover:bg-gray-600"><Minus size={12} /></button>
+          <button onClick={onMaximize} className="control-btn hover:bg-gray-600"><Maximize size={12} /></button>
+          <button onClick={() => onClose(id)} className="control-btn hover:bg-red-500"><X size={14} /></button>
         </div>
-        <div className="p-4 flex-grow overflow-y-auto text-white">
-          {children}
-        </div>
-      </motion.div>
+      </div>
+      <div className="p-4 flex-grow overflow-y-auto text-white">
+        {children}
+      </div>
     </Rnd>
   );
 };
