@@ -11,8 +11,6 @@ import { getApps } from '@/data/apps';
 // Hàm tạo các bước tour động
 const generateTourSteps = (isMobile: boolean, openWindowAction: (app: App) => void): TourStep[] => {
   const apps = getApps(isMobile);
-
-  // Tạo các bước hướng dẫn cho từng icon
   const iconSteps: TourStep[] = Object.values(apps).map(app => ({
     selector: `[data-tour-id="icon-${app.id}"]`,
     title: `Ứng dụng: ${app.title}`,
@@ -33,9 +31,9 @@ const generateTourSteps = (isMobile: boolean, openWindowAction: (app: App) => vo
   }
 
   // Các bước cho PC
-  return [
+return [
     {
-      selector: '[data-tour-id="icon-about"]', // Bắt đầu với icon About Me
+      selector: '[data-tour-id="icon-about"]',
       title: `Ứng dụng: ${apps.about.title}`,
       content: apps.about.description,
       position: 'right',
@@ -47,12 +45,19 @@ const generateTourSteps = (isMobile: boolean, openWindowAction: (app: App) => vo
       action: () => openWindowAction(apps.about),
     },
     {
-      selector: '[data-tour-id="window-main"]',
+      // SỬA LỖI 3: Sử dụng selector DUY NHẤT và CỤ THỂ
+      selector: '[data-tour-id="window-about"]',
       title: "Cửa sổ ứng dụng",
       content: "Bạn có thể kéo thả và thay đổi kích thước cửa sổ này.",
       position: 'bottom',
     },
-    // Thêm các bước cho các icon còn lại, trừ icon 'about' đã giới thiệu
+    {
+      // SỬA LỖI 4: Tương tự, sử dụng selector DUY NHẤT cho các nút
+      selector: '[data-tour-id="window-controls-about"]',
+      title: "Nút điều khiển",
+      content: "Sử dụng các nút này để thu nhỏ, phóng to, hoặc đóng cửa sổ.",
+      position: 'bottom',
+    },
     ...iconSteps.filter(step => step.selector !== '[data-tour-id="icon-about"]'),
   ];
 };

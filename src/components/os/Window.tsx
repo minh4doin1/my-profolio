@@ -24,7 +24,6 @@ const Window = ({ id, title, children, zIndex, isActive, onClose, onFocus, onMin
   `;
 
   return (
-    // Rnd là wrapper để kéo/thả
     <Rnd
       default={{
         x: Math.max(0, window.innerWidth / 2 - 300),
@@ -41,10 +40,9 @@ const Window = ({ id, title, children, zIndex, isActive, onClose, onFocus, onMin
       onMouseDown={() => onFocus(id)}
       dragHandleClassName="drag-handle"
     >
-      {/* motion.div bên trong để xử lý animation */}
       <motion.div
-        // SỬA LỖI 1: Đặt data-tour-id vào đây, là element trực quan
-        data-tour-id="window-main"
+        // SỬA LỖI 1: Tạo data-tour-id DUY NHẤT dựa trên id của cửa sổ
+        data-tour-id={`window-${id}`}
         layoutId={`window-${id}`}
         className={windowClasses}
         initial={{ opacity: 0, scale: 0.9 }}
@@ -54,7 +52,8 @@ const Window = ({ id, title, children, zIndex, isActive, onClose, onFocus, onMin
       >
         <div className={`drag-handle h-8 flex items-center justify-between px-2 rounded-t-lg cursor-move flex-shrink-0`}>
           <span className="font-bold text-sm text-white select-none">{title}</span>
-          <div data-tour-id="window-controls" className="flex items-center space-x-1">
+          {/* SỬA LỖI 2: Tương tự, tạo id DUY NHẤT cho các nút điều khiển */}
+          <div data-tour-id={`window-controls-${id}`} className="flex items-center space-x-1">
             <button onClick={() => onMinimize(id)} className="control-btn hover:bg-gray-600"><Minus size={12} /></button>
             <button onClick={onMaximize} className="control-btn hover:bg-gray-600"><Maximize size={12} /></button>
             <button onClick={() => onClose(id)} className="control-btn hover:bg-red-500"><X size={14} /></button>
