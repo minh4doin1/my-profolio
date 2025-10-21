@@ -24,7 +24,6 @@ const TourGuide = ({ steps, onComplete }: TourGuideProps) => {
     if (!skipAction) {
       setTargetRect(null);
     }
-    
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -32,6 +31,7 @@ const TourGuide = ({ steps, onComplete }: TourGuideProps) => {
     }
   }, [currentStep, steps, onComplete]);
 
+  // Effect chính để chạy các bước tour
   useEffect(() => {
     const step = steps[currentStep];
     if (!step) return;
@@ -40,68 +40,70 @@ const TourGuide = ({ steps, onComplete }: TourGuideProps) => {
       step.action();
     }
 
+    // SỬA LỖI 1: Tăng thời gian chờ để animation của cửa sổ hoàn thành
     const timer = setTimeout(() => {
       const element = document.querySelector(step.selector);
       if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
         setTargetRect(element.getBoundingClientRect());
       } else {
         console.warn(`TourGuide: Element not found for selector: "${step.selector}". Skipping step.`);
         handleNext(true);
       }
-    }, 150);
+    }, 300); // Tăng lên 300ms
 
     return () => clearTimeout(timer);
   }, [currentStep, steps, handleNext]);
 
-  const step = steps[currentStep];
+  // SỬA LỖI 2: Thêm effect để tour tự cập nhật vị trí khi resize
+  useEffect(() => {
+    const recalculatePosition = () => {
+      const step = steps[currentStep];
+      if (!step || !targetRect) return; // Chỉ tính lại khi đã có vị trí ban đầu
+      const element = document.querySelector(step.selector);
+      if (element) {
+        setTargetRect(element.getBoundingClientRect());
+      }
+    };
+
+    window.addEventListener('resize', recalculatePosition);
+    return () => window.removeEventListener('resize', recalculatePosition);
+  }, [currentStep, steps, targetRect]); // Phụ thuộc vào targetRect để chỉ chạy khi cần
 
   if (!targetRect) {
     return <div className="tour-overlay" />;
   }
 
+  const step = steps[currentStep];
   const position = step.position || 'bottom';
-
-  // [THAY ĐỔI LỚN BẮT ĐẦU TỪ ĐÂY]
-  // Định nghĩa các hằng số để dễ quản lý
-  const TOOLTIP_WIDTH = 288; // Chiều rộng của tooltip (tương ứng w-72)
-  const VIEWPORT_PADDING = 16; // Khoảng cách tối thiểu từ lề màn hình (1rem)
+  const TOOLTIP_WIDTH = 288;
+  const VIEWPORT_PADDING = 16;
 
   const tooltipStyles: CSSProperties = {
     width: `${TOOLTIP_WIDTH}px`,
     maxWidth: `calc(100vw - ${VIEWPORT_PADDING * 2}px)`,
-    zIndex: 100000,
+    zIndex: 100004, // Z-index cao nhất
   };
 
-  // Tính toán vị trí động
   if (position === 'top' || position === 'bottom') {
-    // Vị trí dọc không đổi
+    const idealLeft = targetRect.left + targetRect.width / 2 - TOOLTIP_WIDTH / 2;
+    const clampedLeft = Math.max(
+      VIEWPORT_PADDING,
+      Math.min(idealLeft, window.innerWidth - TOOLTIP_WIDTH - VIEWPORT_PADDING)
+    );
+    tooltipStyles.left = `${clampedLeft}px`;
+    tooltipStyles.transform = 'none';
     tooltipStyles.top = position === 'bottom' ? targetRect.bottom + 12 : 'auto';
     tooltipStyles.bottom = position === 'top' ? window.innerHeight - targetRect.top + 12 : 'auto';
-
-    // 1. Tính toán vị trí lý tưởng (căn giữa icon)
-    const idealLeft = targetRect.left + targetRect.width / 2 - TOOLTIP_WIDTH / 2;
-
-    // 2. "Kẹp" vị trí đó để nó luôn nằm trong màn hình
-    const clampedLeft = Math.max(
-      VIEWPORT_PADDING, // Không được nhỏ hơn padding bên trái
-      Math.min(idealLeft, window.innerWidth - TOOLTIP_WIDTH - VIEWPORT_PADDING) // Không được lớn hơn padding bên phải
-    );
-
-    tooltipStyles.left = `${clampedLeft}px`;
-    // Bỏ transform vì chúng ta đã tính toán vị trí cuối cùng
-    tooltipStyles.transform = 'none';
-
-  } else { // Logic cho vị trí 'left' và 'right'
+  } else {
     tooltipStyles.left = position === 'right' ? targetRect.right + 12 : 'auto';
     tooltipStyles.right = position === 'left' ? window.innerWidth - targetRect.left + 12 : 'auto';
     tooltipStyles.top = targetRect.top + targetRect.height / 2;
     tooltipStyles.transform = 'translateY(-50%)';
   }
-  // [KẾT THÚC THAY ĐỔI LỚN]
 
-return (
+  return (
     <>
+      <div className="tour-overlay" />
       <div
         className="tour-highlight"
         style={{

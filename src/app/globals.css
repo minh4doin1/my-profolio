@@ -105,21 +105,19 @@ body {
 .tour-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.6); /* Tăng độ tối một chút */
-  z-index: 99998; /* Z-index rất cao */
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 10002; /* Z-index cao */
 }
 
-/* Hộp highlight để "đục lỗ" qua lớp phủ */
 .tour-highlight {
   position: fixed;
   border-radius: 8px;
-  /* Dùng box-shadow để tạo hiệu ứng "đục lỗ" mà không cần z-index riêng */
-  /* Kỹ thuật này đảm bảo nó luôn hoạt động đúng với overlay */
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  /* Bỏ box-shadow khổng lồ, chỉ giữ lại border và glow */
   border: 2px solid #3b82f6;
+  box-shadow: 0 0 15px #3b82f6;
   
-  /* Z-index cao hơn overlay để border hiển thị */
-  z-index: 99999; 
+  /* Z-index cao hơn overlay */
+  z-index: 10003; 
   
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
@@ -127,7 +125,7 @@ body {
 }
 
 @keyframes pulse-glow {
-  0% { box-shadow: 0 0 15px #3b82f6, 0 0 0 9999px rgba(0, 0, 0, 0.6); }
-  50% { box-shadow: 0 0 25px #3b82f6, 0 0 0 9999px rgba(0, 0, 0, 0.6); }
-  100% { box-shadow: 0 0 15px #3b82f6, 0 0 0 9999px rgba(0, 0, 0, 0.6); }
+  0% { box-shadow: 0 0 15px #3b82f6; }
+  50% { box-shadow: 0 0 25px #3b82f6; }
+  100% { box-shadow: 0 0 15px #3b82f6; }
 }
