@@ -65,14 +65,16 @@ export default function RootLayout({
                 onGoHome={handleGoHome}
               />
             ) : (
-              <Taskbar
-                apps={apps}
-                openWindows={windows}
-                minimizedWindows={minimized}
-                onTaskbarClick={handleTaskbarClick}
-                onStartMenuAppClick={handleStartMenuAppClick}
-                activeWindowId={activeWindowId}
-              />
+              <div data-tour-id="taskbar">
+                <Taskbar
+                  apps={apps}
+                  openWindows={windows}
+                  minimizedWindows={minimized}
+                  onTaskbarClick={handleTaskbarClick}
+                  onStartMenuAppClick={handleStartMenuAppClick}
+                  activeWindowId={activeWindowId}
+                />
+              </div>
             )}
           </div>
         </SessionProvider>
