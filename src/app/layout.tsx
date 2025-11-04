@@ -19,7 +19,7 @@ export default function RootLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { isMobile } = useDeviceDetection();
-  const apps = getApps(isMobile);
+  const apps = getApps(isMobile, router);
   
   const { 
     windows, minimized, activeWindowId, openWindow, focusWindow,

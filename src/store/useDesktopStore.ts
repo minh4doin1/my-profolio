@@ -1,9 +1,42 @@
+// src/store/useDesktopStore.ts
+
 import { create } from 'zustand';
 
-type WindowApp = { id: string; title: string; content: React.ReactNode; pageUrl?: string; action?: never; };
-type ActionApp = { id: string; title: string; content?: never; action: () => void; };
+// --- ĐỊNH NGHĨA TYPE TẬP TRUNG TẠI ĐÂY ---
+
+// Loại App cơ bản: Hoặc là cửa sổ có nội dung, hoặc là một hành động.
+type WindowApp = {
+  id: string;
+  title: string;
+  content: React.ReactNode;
+  pageUrl?: string;
+  action?: never;
+};
+
+type ActionApp = {
+  id: string;
+  title: string;
+  content?: never;
+  action: () => void;
+  pageUrl?: string;
+};
+
+// Export App để các file khác có thể sử dụng (ví dụ: Desktop.tsx)
 export type App = WindowApp | ActionApp;
-export type OpenWindow = WindowApp & { zIndex: number; };
+
+// Export AppData để file data/apps.ts sử dụng
+// Nó kế thừa App và thêm trường description.
+export type AppData = App & {
+  description: string;
+};
+
+// Export OpenWindow để store này sử dụng nội bộ
+export type OpenWindow = WindowApp & {
+  zIndex: number;
+};
+
+
+// --- PHẦN LOGIC CỦA STORE ---
 
 type DesktopState = {
   windows: OpenWindow[];

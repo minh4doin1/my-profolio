@@ -1,21 +1,18 @@
-import { App } from '@/store/useDesktopStore';
+// src/data/apps.tsx
+import { AppData } from '@/store/useDesktopStore';
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+
 import AboutContent from '@/components/os/apps/AboutApp';
 import BlogApp from '@/components/os/apps/BlogApp';
 import GuestbookApp from '@/components/os/apps/GuestbookApp';
 import FileExplorer from '@/components/os/FileExplorer';
 import PdfViewer from '@/components/os/apps/PdfViewer';
 
-// Mở rộng type App để có thêm mô tả cho tour
-export type AppData = App & {
-  description: string;
-};
-
-// Dùng một hàm để có thể truyền isMobile vào, giải quyết dependency
-export const getApps = (isMobile: boolean): Record<string, AppData> => ({
+// Hàm getApps giờ đây sử dụng AppData được import
+export const getApps = (isMobile: boolean, router: AppRouterInstance): Record<string, AppData> => ({
   about: {
     id: 'about',
     title: 'About Me',
-    // SỬA LỖI: Gán trực tiếp component JSX như một giá trị
     content: <AboutContent />,
     pageUrl: '/about',
     description: 'Đây là nơi bạn có thể tìm hiểu thông tin về tôi, kỹ năng và mục tiêu nghề nghiệp.',
@@ -26,6 +23,12 @@ export const getApps = (isMobile: boolean): Record<string, AppData> => ({
     content: <FileExplorer />,
     pageUrl: '/projects',
     description: 'Khám phá các dự án tôi đã thực hiện, với các bài viết chi tiết về công nghệ và quá trình phát triển.',
+  },
+  conquest: {
+    id: 'conquest',
+    title: 'Project Conquest',
+    action: () => router.push('/apps/conquest'),
+    description: 'A real-time multiplayer strategy board game.',
   },
   blog: {
     id: 'blog',
@@ -43,7 +46,6 @@ export const getApps = (isMobile: boolean): Record<string, AppData> => ({
   cv: {
     id: 'cv',
     title: 'CV.pdf',
-    // SỬA LỖI: Gán component JSX với props một cách chính xác
     content: <PdfViewer fileUrl="/CV_NguyenCongNhatMinh.pdf" isMobile={isMobile} />,
     description: 'Xem hoặc tải xuống CV đầy đủ của tôi ở định dạng PDF tại đây.',
   },

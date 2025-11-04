@@ -1,5 +1,7 @@
+// src/components/os/Desktop.tsx
+
 "use client";
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation'; // Import useRouter
 import { AnimatePresence, motion } from 'framer-motion';
 import { useDeviceDetection } from '@/lib/hooks/useDeviceDetection';
 import { useDesktopStore } from '@/store/useDesktopStore';
@@ -9,9 +11,11 @@ import Window from './Window';
 import Icon from './Icon';
 
 const Desktop = () => {
-  const router = useRouter();
+  const router = useRouter(); // Gọi hook ở đây
   const { isMobile } = useDeviceDetection();
-  const apps = getApps(isMobile);
+  
+  // Truyền router vào hàm getApps
+  const apps = getApps(isMobile, router);
 
   const { 
     windows, minimized, activeWindowId, openWindow, closeWindow, focusWindow, minimizeWindow,
@@ -24,7 +28,11 @@ const Desktop = () => {
 
   const handleMobileAppOpen = (appId: keyof typeof apps) => {
     const app = apps[appId];
-    if (app.action) { app.action(); return; }
+    // Sửa lại logic để gọi action nếu có
+    if (app.action) { 
+      app.action(); 
+      return; 
+    }
     if (app.content) {
       openMobileApp(app);
     }

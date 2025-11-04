@@ -7,10 +7,22 @@ import TourGuide, { TourStep } from '@/components/guides/TourGuide';
 import { useDeviceDetection } from '@/lib/hooks/useDeviceDetection';
 import { useDesktopStore, App } from '@/store/useDesktopStore';
 import { getApps } from '@/data/apps';
+import { useRouter } from 'next/navigation';
 
 // Hàm tạo các bước tour động
-const generateTourSteps = (isMobile: boolean): TourStep[] => {
-  const apps = getApps(isMobile);
+
+
+export default function Home() {
+  const [showIntro, setShowIntro] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
+  const { isMobile } = useDeviceDetection();
+  const router = useRouter();
+  
+  const openWindow = useDesktopStore((state) => state.openWindow);
+  const closeWindow = useDesktopStore((state) => state.closeWindow);
+  const generateTourSteps = (isMobile: boolean): TourStep[] => {
+  const apps = getApps(isMobile, router);
   const iconSteps: TourStep[] = Object.values(apps).map(app => ({
     selector: `[data-tour-id="icon-${app.id}"]`,
     title: `Ứng dụng: ${app.title}`,
@@ -41,16 +53,6 @@ const generateTourSteps = (isMobile: boolean): TourStep[] => {
     },
   ];
 };
-
-export default function Home() {
-  const [showIntro, setShowIntro] = useState(true);
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [tourActive, setTourActive] = useState(false);
-  const { isMobile } = useDeviceDetection();
-  
-  const openWindow = useDesktopStore((state) => state.openWindow);
-  const closeWindow = useDesktopStore((state) => state.closeWindow);
-
   const tourSteps = useMemo(() => generateTourSteps(isMobile), [isMobile]);
   useEffect(() => {
     const hasSeenIntro = sessionStorage.getItem('introSeen');
