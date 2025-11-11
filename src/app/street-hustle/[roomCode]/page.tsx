@@ -1,57 +1,77 @@
-//src/app/street-hustle/[roomCode]/page.tsx
+// src/app/street-hustle/[roomCode]/page.tsx
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase, getAnonymousUserId } from '@/lib/supabase';
 import { User, Crown } from 'lucide-react';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { AnimatePresence } from 'framer-motion';
+
+// --- IMPORT STORE VÀ CÁC COMPONENT ---
+import { useGameStore } from '@/store/useGameStore';
 import GameBoard from './GameBoard';
 import DiceResult from './DiceResult';
 import ActionToast from './ActionToast';
 import GameUI from './GameUI';
 import GamePhaseHeader from './GamePhaseHeader';
+import OffersDashboard from './OffersDashboard';
 import TradingModal from './TradingModal';
 
-// Type Definitions
-type GamePhase = 'lobby' | 'movement' | 'trading' | 'building' | 'income';
-type GameState = {
-  status: 'loading' | 'lobby' | 'ingame' | 'error';
-  phase: GamePhase;
-  roundNumber: number;
-  phaseEndsAt: string | null;
-}
-type Player = { id: string; user_id: string; nickname: string; is_host: boolean; position_on_path: number; color: string; };
-type Land = { id: string; x_coord: number; y_coord: number; };
-type BusinessTile = { id: string; tile_type: string; };
+// --- TYPE DEFINITIONS (Giữ lại các type cần thiết cho component) ---
 type LastDiceRoll = { playerName: string; dice1: number; dice2: number; specialDie: number; } | null;
-
-const PLAYER_COLORS = ['#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#A133FF', '#33FFA1', '#FFC300', '#C70039'];
 
 export default function GamePage() {
   const params = useParams();
   const roomCode = params?.roomCode as string;
+  
+  // --- LẤY STATE VÀ ACTIONS TỪ ZUSTAND STORE ---
+  const { 
+    status, phase, roundNumber, phaseEndsAt, error,
+    players, currentTurnPlayerId, myAssets, offers,
+    initialize, processBroadcastPayload, setMyAssets, setError: setStoreError
+  } = useGameStore();
 
-  // State Management
-  const [gameState, setGameState] = useState<GameState>({
-    status: 'loading',
-    phase: 'lobby',
-    roundNumber: 0,
-    phaseEndsAt: null,
-  });
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [currentTurnPlayerId, setCurrentTurnPlayerId] = useState<string | null>(null);
-  const [myLands, setMyLands] = useState<Land[]>([]);
-  const [myBusinessTiles, setMyBusinessTiles] = useState<BusinessTile[]>([]);
-  const [error, setError] = useState('');
+  // --- STATE CỤC BỘ CỦA COMPONENT (UI-only state) ---
   const [lastDiceRoll, setLastDiceRoll] = useState<LastDiceRoll>(null);
   const [lastAction, setLastAction] = useState<string | null>(null);
   const [isTrading, setIsTrading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  
   const [currentUserId] = useState(getAnonymousUserId());
   const channelRef = useRef<RealtimeChannel | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
+  const currentPlayer = players.find(p => p.user_id === currentUserId);
 
+  // --- XỬ LÝ BROADCAST ---
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleGameUpdate = useCallback((payload: any) => {
+    // Xử lý các hiệu ứng UI tạm thời
+    if (payload.type === 'PLAYER_MOVED') {
+      setLastDiceRoll({ playerName: payload.playerName, dice1: payload.dice1, dice2: payload.dice2, specialDie: payload.specialDie });
+      setTimeout(() => setLastDiceRoll(null), 4000);
+
+      if (payload.tileAction) {
+        let actionMessage = '';
+        if (payload.tileAction.type === 'drawn_land') actionMessage = `${payload.playerName} rút được Sổ Đỏ [${String.fromCharCode(65 + payload.tileAction.data.x)}${payload.tileAction.data.y + 1}]!`;
+        else if (payload.tileAction.type === 'drawn_business') actionMessage = `${payload.playerName} rút được 2 Mảnh Ghép Kinh Doanh!`;
+        setLastAction(actionMessage);
+        setTimeout(() => setLastAction(null), 4000);
+        
+        // Nếu là mình, fetch lại tài sản
+        if (payload.playerId === currentPlayer?.id) {
+          supabase.functions.invoke('get-player-assets', { body: { roomCode, userId: currentUserId } })
+            .then(({ data, error }) => {
+              if (error || data.error) console.error("Failed to refetch assets:", error || data.error);
+              else if (data) setMyAssets(data);
+            });
+        }
+      }
+    }
+    // Gửi payload vào store để xử lý logic state chính
+    processBroadcastPayload(payload, currentPlayer?.id);
+  }, [processBroadcastPayload, currentPlayer?.id, roomCode, currentUserId, setMyAssets]);
+
+  // --- KHỞI TẠO VÀ LẮNG NGHE KÊNH REALTIME ---
   useEffect(() => {
     setIsMounted(true);
     if (!roomCode) return;
@@ -69,79 +89,24 @@ export default function GamePage() {
         if (roomDataRes.error) throw roomDataRes.error;
         if (!roomDataRes.data) throw new Error("Room data not found.");
 
-        const playersWithColors = roomStateRes.data.players.map((p: Omit<Player, 'color'>, i: number) => ({ ...p, color: PLAYER_COLORS[i % PLAYER_COLORS.length] }));
-        setPlayers(playersWithColors);
-        setMyLands(assetStateRes.data.lands || []);
-        setMyBusinessTiles(assetStateRes.data.businessTiles || []);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const playersWithColors = roomStateRes.data.players.map((p: any, i: number) => ({ ...p, color: PLAYER_COLORS[i % PLAYER_COLORS.length] }));
         
-        setGameState({
-          status: roomDataRes.data.status as GameState['status'],
-          phase: roomDataRes.data.current_phase as GamePhase,
+        // Khởi tạo store với dữ liệu ban đầu
+        initialize({
+          status: roomDataRes.data.status,
+          players: playersWithColors,
+          phase: roomDataRes.data.current_phase,
           roundNumber: roomDataRes.data.round_number,
           phaseEndsAt: roomDataRes.data.phase_ends_at,
+          currentTurnPlayerId: roomDataRes.data.current_turn_player_id,
         });
-        setCurrentTurnPlayerId(roomDataRes.data.current_turn_player_id);
+        setMyAssets(assetStateRes.data);
 
         const roomId = roomDataRes.data.id;
         const channel = supabase.channel(`room-${roomId}`);
-        
         channel
-          .on('broadcast', { event: 'game_update' }, (message) => {
-            const { type, ...data } = message.payload;
-            console.log('Received game_update:', type, data);
-
-            switch (type) {
-              case 'PLAYER_JOINED': {
-                const newPlayer = data.newPlayer as Omit<Player, 'color'>;
-                setPlayers(currentPlayers => {
-                  if (currentPlayers.some(p => p.id === newPlayer.id)) return currentPlayers;
-                  const newPlayerWithColor = { ...newPlayer, color: PLAYER_COLORS[currentPlayers.length % PLAYER_COLORS.length] };
-                  return [...currentPlayers, newPlayerWithColor];
-                });
-                break;
-              }
-              case 'GAME_STARTED': {
-                setGameState(gs => ({ ...gs, status: 'ingame', phase: 'movement', roundNumber: 1 }));
-                setCurrentTurnPlayerId(data.startingPlayerId);
-                break;
-              }
-              case 'PLAYER_MOVED': {
-                setLastDiceRoll({ playerName: data.playerName, dice1: data.dice1, dice2: data.dice2, specialDie: data.specialDie });
-                setTimeout(() => setLastDiceRoll(null), 4000);
-                setPlayers(current => current.map(p => p.id === data.playerId ? { ...p, position_on_path: data.newPosition } : p));
-                setCurrentTurnPlayerId(data.nextTurnPlayerId);
-                
-                if (data.tileAction) {
-                  let actionMessage = '';
-                  if (data.tileAction.type === 'drawn_land') actionMessage = `${data.playerName} rút được Sổ Đỏ [${String.fromCharCode(65 + data.tileAction.data.x)}${data.tileAction.data.y + 1}]!`;
-                  else if (data.tileAction.type === 'drawn_business') actionMessage = `${data.playerName} rút được 2 Mảnh Ghép Kinh Doanh!`;
-                  setLastAction(actionMessage);
-                  setTimeout(() => setLastAction(null), 4000);
-                  if (data.playerId === players.find(p => p.user_id === currentUserId)?.id) {
-                    supabase.functions.invoke('get-player-assets', { body: { roomCode, userId: currentUserId } })
-                      .then(({ data: assetData, error: assetError }) => {
-                        if (assetError || assetData.error) console.error("Failed to refetch assets:", assetError || assetData.error);
-                        else if (assetData) {
-                          setMyLands(assetData.lands || []);
-                          setMyBusinessTiles(assetData.businessTiles || []);
-                        }
-                      });
-                  }
-                }
-                break;
-              }
-              case 'PHASE_CHANGED': {
-                setGameState(gs => ({
-                  ...gs,
-                  phase: data.newPhase,
-                  roundNumber: data.roundNumber,
-                  phaseEndsAt: data.phaseEndsAt,
-                }));
-                setCurrentTurnPlayerId(null);
-                break;
-              }
-            }
-          })
+          .on('broadcast', { event: 'game_update' }, (message) => handleGameUpdate(message.payload))
           .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') console.log(`✅ Successfully subscribed to channel: room-${roomId}`);
             if (err) console.error("Subscription error:", err);
@@ -150,9 +115,8 @@ export default function GamePage() {
         channelRef.current = channel;
 
       } catch (e: unknown) {
-        if (e instanceof Error) setError(e.message);
-        else setError("An unexpected error occurred.");
-        setGameState(gs => ({ ...gs, status: 'error' }));
+        const errorMessage = e instanceof Error ? e.message : "An unexpected error occurred.";
+        setStoreError(errorMessage);
       }
     };
 
@@ -164,82 +128,98 @@ export default function GamePage() {
         channelRef.current = null;
       }
     };
-  }, [roomCode, currentUserId]);
+  }, [roomCode, currentUserId, initialize, setMyAssets, setStoreError, handleGameUpdate]);
 
+  // --- CÁC HÀM XỬ LÝ HÀNH ĐỘNG CỦA NGƯỜI DÙNG ---
   const handleStartGame = async () => {
     try {
-      const { error } = await supabase.functions.invoke('start-game', {
-        body: { roomCode, userId: currentUserId },
-      });
+      const { error } = await supabase.functions.invoke('start-game', { body: { roomCode, userId: currentUserId } });
       if (error) throw new Error(error.message);
     } catch (e: unknown) {
-      if (e instanceof Error) setError(e.message);
-      else setError("An unexpected error occurred while starting the game.");
+      setStoreError(e instanceof Error ? e.message : "Failed to start game.");
     }
   };
 
   const handleRollDice = async () => {
     try {
-      setError('');
-      await supabase.functions.invoke('roll-dice', {
-        body: { roomCode, userId: currentUserId },
-      });
+      setStoreError('');
+      await supabase.functions.invoke('roll-dice', { body: { roomCode, userId: currentUserId } });
     } catch (e: unknown) {
-      if (e instanceof Error) setError(e.message);
-      else setError("An unexpected error occurred while rolling the dice.");
+      setStoreError(e instanceof Error ? e.message : "Failed to roll dice.");
     }
   };
-
-  const currentPlayer = players.find(p => p.user_id === currentUserId);
+  const handleEndBuildingTurn = async () => {
+    try {
+      setStoreError(''); // Xóa lỗi cũ nếu có
+      await supabase.functions.invoke('end-building-turn', { 
+        body: { roomCode, userId: currentUserId } 
+      });
+    } catch (e: unknown) {
+      setStoreError(e instanceof Error ? e.message : "Failed to end building turn.");
+    }
+  };
   const isMyTurn = currentPlayer?.id === currentTurnPlayerId;
 
-  if (!isMounted || gameState.status === 'loading') {
+  // --- RENDER LOGIC ---
+  if (!isMounted || status === 'loading') {
     return <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">Loading Game...</div>;
   }
 
-  if (gameState.status === 'error') {
+  if (status === 'error') {
     return <div className="flex items-center justify-center min-h-screen bg-gray-900 text-red-400"><p>Error: {error}</p></div>;
   }
 
-  if (gameState.status === 'ingame') {
+  if (status === 'ingame') {
     return (
       <div className="w-full h-full flex flex-col bg-gray-800">
         <GamePhaseHeader 
-          phase={gameState.phase} 
-          roundNumber={gameState.roundNumber} 
-          phaseEndsAt={gameState.phaseEndsAt} 
+          phase={phase} 
+          roundNumber={roundNumber} 
+          phaseEndsAt={phaseEndsAt} 
           roomCode={roomCode}
         />
         <GameBoard players={players} />
         <AnimatePresence>
-          {lastDiceRoll && <DiceResult  key="dice-result" playerName={lastDiceRoll.playerName} dice1={lastDiceRoll.dice1} dice2={lastDiceRoll.dice2} specialDie={lastDiceRoll.specialDie} />}
+          {lastDiceRoll && <DiceResult key="dice-result" playerName={lastDiceRoll.playerName} dice1={lastDiceRoll.dice1} dice2={lastDiceRoll.dice2} specialDie={lastDiceRoll.specialDie} />}
           {lastAction && <ActionToast key="action-toast" message={lastAction} />}
           <TradingModal
+            key="trading-modal"
             isOpen={isTrading}
             onClose={() => setIsTrading(false)}
             players={players}
             myPlayerId={currentPlayer?.id || ''}
-            myLands={myLands}
-            myBusinessTiles={myBusinessTiles}
+            myLands={myAssets.lands}
+            myBusinessTiles={myAssets.businessTiles}
             roomCode={roomCode}
             currentUserId={currentUserId}
           />
+          {phase === 'trading' && (
+            <OffersDashboard
+              key="offers-dashboard"
+              offers={offers}
+              myPlayerId={currentPlayer?.id || ''}
+              currentUserId={currentUserId}
+              roomCode={roomCode}
+            />
+          )}
         </AnimatePresence>
         <GameUI
-          myLands={myLands}
-          myBusinessTiles={myBusinessTiles}
+          myLands={myAssets.lands}
+          myBusinessTiles={myAssets.businessTiles}
           isMyTurn={isMyTurn}
           onRollDice={handleRollDice}
           currentTurnPlayerName={players.find(p => p.id === currentTurnPlayerId)?.nickname || '...'}
-          error={error}
-          phase={gameState.phase}
+          error={error || ''}
+          phase={phase}
           onOpenTrade={() => setIsTrading(true)}
+          myPlayerGold={currentPlayer?.gold || 0}
+          onEndBuildingTurn={handleEndBuildingTurn}
         />
       </div>
     );
   }
   
-  const isCurrentUserHost = currentPlayer ? currentPlayer.is_host : false;
+  // Giao diện Lobby
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">
       <div className="w-full max-w-2xl p-8 space-y-6 bg-gray-800 rounded-lg shadow-lg">
@@ -258,7 +238,7 @@ export default function GamePage() {
             ))}
           </div>
         </div>
-        {isCurrentUserHost && (
+        {currentPlayer?.is_host && (
           <button
             onClick={handleStartGame}
             className="w-full py-3 mt-4 font-bold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-gray-500"
@@ -271,3 +251,5 @@ export default function GamePage() {
     </div>
   );
 }
+
+const PLAYER_COLORS = ['#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#A133FF', '#33FFA1', '#FFC300', '#C70039'];

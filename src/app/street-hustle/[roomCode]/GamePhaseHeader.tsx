@@ -22,24 +22,37 @@ const phaseInfo: Record<GamePhase, { text: string; icon: React.ReactNode }> = {
   lobby: { text: 'Phòng chờ', icon: <></> },
 };
 
-export default function GamePhaseHeader({ phase, roundNumber, phaseEndsAt }: GamePhaseHeaderProps) {
+export default function GamePhaseHeader({ phase, roundNumber, phaseEndsAt, roomCode }: GamePhaseHeaderProps) {
   const [timeLeft, setTimeLeft] = useState('');
+  // SỬA LỖI: Dùng useRef để tránh re-render không cần thiết
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasTriggeredEndPhase = useRef(false);
 
   useEffect(() => {
+    // Dọn dẹp interval cũ trước khi tạo cái mới
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    // Nếu không phải giai đoạn trading hoặc không có thời gian kết thúc, không làm gì cả
     if (phase !== 'trading' || !phaseEndsAt) {
       setTimeLeft('');
       hasTriggeredEndPhase.current = false;
       return;
     }
 
-    const interval = setInterval(() => {
+    // Đảm bảo chỉ chạy khi có roomCode
+    if (!roomCode) return;
+
+    // Reset lại cờ khi bắt đầu một giai đoạn trading mới
+    hasTriggeredEndPhase.current = false;
+
+    const calculateTimeLeft = () => {
       const endTime = new Date(phaseEndsAt).getTime();
       const now = new Date().getTime();
       const distance = endTime - now;
 
       if (distance < 0) {
-        clearInterval(interval);
         setTimeLeft("00:00");
         if (!hasTriggeredEndPhase.current) {
           hasTriggeredEndPhase.current = true;
@@ -48,16 +61,29 @@ export default function GamePhaseHeader({ phase, roundNumber, phaseEndsAt }: Gam
             body: { roomCode }
           }).catch(err => console.error("Error requesting phase end:", err));
         }
+        if (intervalRef.current) clearInterval(intervalRef.current);
         return;
       }
 
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
       setTimeLeft(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
-    }, 1000);
+    };
+    
+    // Gọi lần đầu để hiển thị ngay lập tức
+    calculateTimeLeft();
 
-    return () => clearInterval(interval);
-  }, [phase, phaseEndsAt]);
+    // Thiết lập interval
+    intervalRef.current = setInterval(calculateTimeLeft, 1000);
+
+    // Hàm dọn dẹp của useEffect
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  // SỬA LỖI: Thêm roomCode vào dependency array
+  }, [phase, phaseEndsAt, roomCode]);
 
   const info = phaseInfo[phase];
   if (!info || phase === 'lobby') return null;
