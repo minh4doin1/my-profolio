@@ -7,7 +7,6 @@ import { immer } from 'zustand/middleware/immer';
 type GamePhase = 'lobby' | 'movement' | 'trading' | 'building' | 'income';
 type GameStatus = 'loading' | 'lobby' | 'ingame' | 'error';
 
-// SỬA LỖI: Định nghĩa các type một cách tường minh để tái sử dụng
 export type Player = {
   id: string;
   user_id: string;
@@ -18,8 +17,18 @@ export type Player = {
   gold: number;
 };
 
-export type Land = { id: string; x_coord: number; y_coord: number; };
+export type Land = {
+  id: string;
+  x_coord: number;
+  y_coord: number;
+  owner_player_id: string | null;
+  business_tile_id: string | null;
+  business_tile?: { tile_type: string } | null; // Sửa lỗi: Đổi tên từ business_tiles thành business_tile
+  land_type: 'buildable' | 'road';
+};
+
 export type BusinessTile = { id: string; tile_type: string; };
+
 export type Offer = {
   id: string;
   from_player_id: string;
@@ -30,18 +39,31 @@ export type Offer = {
   to_player_nickname?: string;
 };
 
-// SỬA LỖI 1: Tạo một type chung cho tất cả các loại payload từ broadcast
+// --- BROADCAST PAYLOAD TYPES ---
+// SỬA LỖI 1: Cập nhật type 'drawn_land' để mong đợi toàn bộ object Land
+type TileAction = 
+  | { type: 'drawn_land'; data: Land } 
+  | { type: 'drawn_business'; data: { tiles: string[] } } 
+  | null;
+
 type PlayerJoinedPayload = { type: 'PLAYER_JOINED'; newPlayer: Player };
 type GameStartedPayload = { type: 'GAME_STARTED'; startingPlayerId: string };
-type TileAction = { type: 'drawn_land'; data: { x: number; y: number } } | { type: 'drawn_business'; data: { tiles: string[] } } | null;
 type PlayerMovedPayload = { type: 'PLAYER_MOVED'; playerId: string; playerName: string; dice1: number; dice2: number; specialDie: number; newPosition: number; tileAction: TileAction; nextTurnPlayerId: string };
 type PhaseChangedPayload = { type: 'PHASE_CHANGED'; newPhase: GamePhase; roundNumber: number; phaseEndsAt: string | null; nextTurnPlayerId: string | null };
 type NewOfferPayload = { type: 'NEW_OFFER'; offer: Offer };
 type OfferRespondedPayload = { type: 'OFFER_RESPONDED'; offerId: string; newStatus: Offer['status']; updatedAssets: Record<string, { gold: number }> | null };
-type GameUpdatePayload = PlayerJoinedPayload | GameStartedPayload | PlayerMovedPayload | PhaseChangedPayload | NewOfferPayload | OfferRespondedPayload;
+type BuildingPlacedPayload = { type: 'BUILDING_PLACED', playerId: string, land: Land, tile: BusinessTile };
 
+type GameUpdatePayload = 
+  | PlayerJoinedPayload 
+  | GameStartedPayload 
+  | PlayerMovedPayload 
+  | PhaseChangedPayload 
+  | NewOfferPayload 
+  | OfferRespondedPayload
+  | BuildingPlacedPayload;
 
-// --- ĐỊNH NGHĨA CẤU TRÚC CỦA STORE ---
+// --- STORE STRUCTURE ---
 interface GameState {
   status: GameStatus;
   phase: GamePhase;
@@ -50,6 +72,7 @@ interface GameState {
   error: string | null;
   players: Player[];
   currentTurnPlayerId: string | null;
+  lands: Land[];
   myAssets: {
     lands: Land[];
     businessTiles: BusinessTile[];
@@ -58,18 +81,17 @@ interface GameState {
 }
 
 interface GameActions {
-  initialize: (initialState: Partial<GameState> & { players: Player[] }) => void;
+  initialize: (initialState: Partial<GameState> & { players: Player[], lands: Land[] }) => void;
   setPlayers: (players: Player[]) => void;
   setMyAssets: (assets: { lands: Land[], businessTiles: BusinessTile[] }) => void;
   setError: (message: string) => void;
   processBroadcastPayload: (payload: GameUpdatePayload, myPlayerId: string | undefined) => void;
 }
 
-// --- TẠO STORE ---
 export const useGameStore = create<GameState & GameActions>()(
-  // SỬA LỖI 6: Đổi 'get' thành '_get' để báo hiệu biến không được sử dụng
-  immer((set, _get) => ({
-    // --- TRẠNG THÁI BAN ĐẦU ---
+  // SỬA LỖI 2: Xóa '_get' không được sử dụng
+  immer((set) => ({
+    // --- INITIAL STATE ---
     status: 'loading',
     phase: 'lobby',
     roundNumber: 0,
@@ -77,6 +99,7 @@ export const useGameStore = create<GameState & GameActions>()(
     error: null,
     players: [],
     currentTurnPlayerId: null,
+    lands: [],
     myAssets: { lands: [], businessTiles: [] },
     offers: [],
 
@@ -88,19 +111,18 @@ export const useGameStore = create<GameState & GameActions>()(
       state.roundNumber = initialState.roundNumber || 0;
       state.phaseEndsAt = initialState.phaseEndsAt || null;
       state.currentTurnPlayerId = initialState.currentTurnPlayerId || null;
+      state.lands = initialState.lands;
     }),
 
     setPlayers: (players) => set({ players }),
     setMyAssets: (assets) => set({ myAssets: assets }),
     setError: (message) => set({ error: message }),
 
-    // SỬA LỖI 1: Sử dụng type 'GameUpdatePayload' thay vì 'any'
     processBroadcastPayload: (payload, myPlayerId) => set(state => {
       console.log('Store processing broadcast:', payload.type, payload);
       switch (payload.type) {
         case 'PLAYER_JOINED': {
           const newPlayer = payload.newPlayer;
-          // SỬA LỖI 2: Thêm type cho 'p'
           if (!state.players.some((p: Player) => p.id === newPlayer.id)) {
             const newPlayerWithColor = { ...newPlayer, color: PLAYER_COLORS[state.players.length % PLAYER_COLORS.length] };
             state.players.push(newPlayerWithColor);
@@ -114,12 +136,20 @@ export const useGameStore = create<GameState & GameActions>()(
           state.currentTurnPlayerId = payload.startingPlayerId;
           break;
         case 'PLAYER_MOVED': {
-          // SỬA LỖI 3: Thêm type cho 'p'
           const playerIndex = state.players.findIndex((p: Player) => p.id === payload.playerId);
           if (playerIndex !== -1) {
             state.players[playerIndex].position_on_path = payload.newPosition;
           }
           state.currentTurnPlayerId = payload.nextTurnPlayerId;
+
+          // SỬA LỖI 3: Logic này giờ đã an toàn về type
+          if (payload.tileAction?.type === 'drawn_land') {
+            const updatedLand = payload.tileAction.data;
+            const landIndex = state.lands.findIndex(l => l.id === updatedLand.id);
+            if (landIndex !== -1) {
+              state.lands[landIndex].owner_player_id = updatedLand.owner_player_id;
+            }
+          }
           break;
         }
         case 'PHASE_CHANGED':
@@ -140,15 +170,27 @@ export const useGameStore = create<GameState & GameActions>()(
         }
         case 'OFFER_RESPONDED': {
           const { offerId, newStatus, updatedAssets } = payload;
-          // SỬA LỖI 4: Thêm type cho 'o'
           state.offers = state.offers.filter((o: Offer) => o.id !== offerId);
           if (newStatus === 'accepted' && updatedAssets) {
-            // SỬA LỖI 5: Thêm type cho 'player'
             state.players.forEach((player: Player) => {
               if (updatedAssets[player.id]) {
                 player.gold = updatedAssets[player.id].gold;
               }
             });
+          }
+          break;
+        }
+        case 'BUILDING_PLACED': {
+          const landIndex = state.lands.findIndex(l => l.id === payload.land.id);
+          if (landIndex !== -1) {
+            state.lands[landIndex].business_tile_id = payload.tile.id;
+            state.lands[landIndex].business_tile = { tile_type: payload.tile.tile_type };
+          }
+
+          if (payload.playerId === myPlayerId) {
+            state.myAssets.businessTiles = state.myAssets.businessTiles.filter(
+              t => t.id !== payload.tile.id
+            );
           }
           break;
         }
