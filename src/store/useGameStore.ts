@@ -1,5 +1,3 @@
-// src/store/useGameStore.ts
-
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 
@@ -23,7 +21,8 @@ export type Land = {
   y_coord: number;
   owner_player_id: string | null;
   business_tile_id: string | null;
-  business_tile?: { tile_type: string } | null; // Sửa lỗi: Đổi tên từ business_tiles thành business_tile
+  // SỬA LỖI 1: Đổi tên thuộc tính để khớp với kết quả trả về của Supabase JOIN
+  business_tiles: { tile_type: string } | null; 
   land_type: 'buildable' | 'road';
 };
 
@@ -33,14 +32,16 @@ export type Offer = {
   id: string;
   from_player_id: string;
   to_player_id: string;
-  offer_details: { from?: { gold?: number }; to?: { gold?: number } };
+  offer_details: { 
+    from?: { gold?: number; landIds?: string[]; businessTileIds?: string[] }; 
+    to?: { gold?: number; landIds?: string[]; businessTileIds?: string[] };
+  };
   status: 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled';
   from_player_nickname?: string;
   to_player_nickname?: string;
 };
 
 // --- BROADCAST PAYLOAD TYPES ---
-// SỬA LỖI 1: Cập nhật type 'drawn_land' để mong đợi toàn bộ object Land
 type TileAction = 
   | { type: 'drawn_land'; data: Land } 
   | { type: 'drawn_business'; data: { tiles: string[] } } 
@@ -51,7 +52,18 @@ type GameStartedPayload = { type: 'GAME_STARTED'; startingPlayerId: string };
 type PlayerMovedPayload = { type: 'PLAYER_MOVED'; playerId: string; playerName: string; dice1: number; dice2: number; specialDie: number; newPosition: number; tileAction: TileAction; nextTurnPlayerId: string };
 type PhaseChangedPayload = { type: 'PHASE_CHANGED'; newPhase: GamePhase; roundNumber: number; phaseEndsAt: string | null; nextTurnPlayerId: string | null };
 type NewOfferPayload = { type: 'NEW_OFFER'; offer: Offer };
-type OfferRespondedPayload = { type: 'OFFER_RESPONDED'; offerId: string; newStatus: Offer['status']; updatedAssets: Record<string, { gold: number }> | null };
+type OfferRespondedPayload = { 
+  type: 'OFFER_RESPONDED'; 
+  offerId: string; 
+  newStatus: Offer['status']; 
+  updatedAssets: Record<string, { gold: number }> | null;
+  tradeDetails?: {
+    fromPlayerId: string;
+    toPlayerId: string;
+    lands: { from: string[], to: string[] };
+    tiles: { from: string[], to: string[] };
+  }
+};
 type BuildingPlacedPayload = { type: 'BUILDING_PLACED', playerId: string, land: Land, tile: BusinessTile };
 
 type GameUpdatePayload = 
@@ -89,7 +101,6 @@ interface GameActions {
 }
 
 export const useGameStore = create<GameState & GameActions>()(
-  // SỬA LỖI 2: Xóa '_get' không được sử dụng
   immer((set) => ({
     // --- INITIAL STATE ---
     status: 'loading',
@@ -142,7 +153,6 @@ export const useGameStore = create<GameState & GameActions>()(
           }
           state.currentTurnPlayerId = payload.nextTurnPlayerId;
 
-          // SỬA LỖI 3: Logic này giờ đã an toàn về type
           if (payload.tileAction?.type === 'drawn_land') {
             const updatedLand = payload.tileAction.data;
             const landIndex = state.lands.findIndex(l => l.id === updatedLand.id);
@@ -164,19 +174,49 @@ export const useGameStore = create<GameState & GameActions>()(
         case 'NEW_OFFER': {
           const newOffer = payload.offer;
           if (newOffer.from_player_id === myPlayerId || newOffer.to_player_id === myPlayerId) {
-            state.offers.push(newOffer);
+            if (!state.offers.some(o => o.id === newOffer.id)) {
+              state.offers.push(newOffer);
+            }
           }
           break;
         }
         case 'OFFER_RESPONDED': {
-          const { offerId, newStatus, updatedAssets } = payload;
+          const { offerId, newStatus, updatedAssets, tradeDetails } = payload;
           state.offers = state.offers.filter((o: Offer) => o.id !== offerId);
-          if (newStatus === 'accepted' && updatedAssets) {
-            state.players.forEach((player: Player) => {
-              if (updatedAssets[player.id]) {
-                player.gold = updatedAssets[player.id].gold;
+          
+          if (newStatus === 'accepted') {
+            if (updatedAssets) {
+              state.players.forEach((player: Player) => {
+                if (updatedAssets[player.id]) {
+                  player.gold = updatedAssets[player.id].gold;
+                }
+              });
+            }
+            if (tradeDetails) {
+              // Cập nhật state.lands chung
+              state.lands.forEach(land => {
+                if (tradeDetails.lands.from.includes(land.id)) land.owner_player_id = tradeDetails.toPlayerId;
+                if (tradeDetails.lands.to.includes(land.id)) land.owner_player_id = tradeDetails.fromPlayerId;
+              });
+
+              // SỬA LỖI 2: Cập nhật state.myAssets
+              if (myPlayerId === tradeDetails.fromPlayerId) {
+                // Tôi là người gửi, tôi mất đất/thẻ 'from' và nhận đất/thẻ 'to'
+                // (Hiện tại chưa hỗ trợ nhận đất/thẻ, chỉ cần xử lý mất)
+                state.myAssets.lands = state.myAssets.lands.filter(l => !tradeDetails.lands.from.includes(l.id));
+                state.myAssets.businessTiles = state.myAssets.businessTiles.filter(t => !tradeDetails.tiles.from.includes(t.id));
+              } else if (myPlayerId === tradeDetails.toPlayerId) {
+                // Tôi là người nhận, tôi nhận đất/thẻ 'from' và mất đất/thẻ 'to'
+                // (Hiện tại chưa hỗ trợ mất đất/thẻ, chỉ cần xử lý nhận)
+                tradeDetails.lands.from.forEach(landId => {
+                  const landToAdd = state.lands.find(l => l.id === landId);
+                  if (landToAdd && !state.myAssets.lands.some(l => l.id === landId)) {
+                    state.myAssets.lands.push(landToAdd);
+                  }
+                });
+                // Logic tương tự cho business tiles nếu cần
               }
-            });
+            }
           }
           break;
         }
@@ -184,7 +224,8 @@ export const useGameStore = create<GameState & GameActions>()(
           const landIndex = state.lands.findIndex(l => l.id === payload.land.id);
           if (landIndex !== -1) {
             state.lands[landIndex].business_tile_id = payload.tile.id;
-            state.lands[landIndex].business_tile = { tile_type: payload.tile.tile_type };
+            // Sửa tên thuộc tính
+            state.lands[landIndex].business_tiles = { tile_type: payload.tile.tile_type };
           }
 
           if (payload.playerId === myPlayerId) {

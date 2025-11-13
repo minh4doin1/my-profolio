@@ -1,4 +1,3 @@
-// src/app/street-hustle/[roomCode]/GameBoard.tsx
 "use client";
 
 import { boardTiles, BoardTile } from './boardData';
@@ -29,15 +28,19 @@ const LandGridPlot = ({ land, isBuildable, onLandClick }: { land: Land, isBuilda
   const playerColor = player?.color;
   const baseClasses = "border border-black/20 flex items-center justify-center transition-all duration-200 relative";
   const buildableClasses = isBuildable ? 'cursor-pointer ring-4 ring-yellow-400 ring-inset z-10 hover:bg-opacity-50' : '';
+  
+  // SỬA LỖI: Đọc từ `business_tiles` thay vì `business_tile_id` để hiển thị
+  const builtTile = land.business_tiles;
+
   return (
     <div 
       className={`${baseClasses} ${buildableClasses}`}
-      style={{ backgroundColor: playerColor ? `${playerColor}4D` : 'rgba(107, 114, 128, 0.3)' }} // Thêm alpha channel
+      style={{ backgroundColor: playerColor ? `${playerColor}4D` : 'rgba(107, 114, 128, 0.3)' }}
       onClick={() => isBuildable && onLandClick(land.id)}
       title={player ? `Sở hữu của: ${player.nickname}` : 'Đất chưa có chủ'}
     >
-      {land.business_tile_id && (
-        <div title={land.business_tile?.tile_type.replace('_', ' ')}>
+      {builtTile && (
+        <div title={builtTile.tile_type.replace('_', ' ')}>
           <Building className="w-6 h-6 text-white" />
         </div>
       )}
@@ -69,7 +72,7 @@ const PathTile = ({ tile, style }: { tile: BoardTile, style: React.CSSProperties
 
 const PlayerPiece = ({ player, index }: { player: Player, index: number }) => {
   const tile = boardTiles[player.position_on_path];
-  if (!tile) return null; // An toàn nếu vị trí không hợp lệ
+  if (!tile) return null;
 
   const styles: React.CSSProperties = {
     backgroundColor: player.color,
@@ -78,7 +81,7 @@ const PlayerPiece = ({ player, index }: { player: Player, index: number }) => {
     zIndex: 20 + index,
   };
 
-  const TILE_SIZE_PERCENT = 100 / 12; // ~8.33%
+  const TILE_SIZE_PERCENT = 100 / 12;
   const PIECE_SIZE_PERCENT = 4;
   const offset = (TILE_SIZE_PERCENT - PIECE_SIZE_PERCENT) / 2;
 
@@ -107,7 +110,6 @@ export default function GameBoard({ players, lands, myPlayerId, isMyTurn, phase,
     <div className="w-full flex-grow flex items-center justify-center bg-gray-800 p-4 relative">
       <div className="aspect-square w-full max-w-6xl relative">
         <div className="absolute inset-0 grid grid-cols-12 grid-rows-12">
-          {/* Vòng Ngoài */}
           {boardTiles.map(tile => {
             const gridStyle: React.CSSProperties = {};
             if (tile.position === 'bottom') { gridStyle.gridRowStart = 12; gridStyle.gridColumnStart = 12 - tile.id; } 
@@ -117,7 +119,6 @@ export default function GameBoard({ players, lands, myPlayerId, isMyTurn, phase,
             return <PathTile key={tile.id} tile={tile} style={gridStyle} />;
           })}
           
-          {/* Vùng Trung Tâm 10x10 */}
           <div className="col-start-2 col-span-10 row-start-2 row-span-10 bg-green-900/50 grid grid-cols-10 grid-rows-10">
             {lands.map(land => {
               if (land.land_type === 'road') {
@@ -137,7 +138,6 @@ export default function GameBoard({ players, lands, myPlayerId, isMyTurn, phase,
             })}
           </div>
         </div>
-        {/* Quân cờ */}
         {players.map((p, index) => <PlayerPiece key={p.id} player={p} index={index} />)}
       </div>
     </div>

@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/street-hustle/[roomCode]/page.tsx
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase, getAnonymousUserId } from '@/lib/supabase';
-import { User, Crown } from 'lucide-react';
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { AnimatePresence } from 'framer-motion';
 
@@ -19,6 +17,7 @@ import ActionPanel from './ActionPanel';
 import TradingModal from './TradingModal';
 import OffersDashboard from './OffersDashboard';
 import GamePhaseHeader from './GamePhaseHeader';
+import Lobby from './Lobby'; // Import component Lobby
 
 type LastDiceRoll = { playerName: string; dice1: number; dice2: number; specialDie: number; } | null;
 
@@ -42,36 +41,52 @@ export default function GamePage() {
   const channelRef = useRef<RealtimeChannel | null>(null);
   const currentPlayer = players.find(p => p.user_id === currentUserId);
 
-  // SỬA LỖI LỚN: Ổn định hàm handleGameUpdate để phá vỡ vòng lặp vô hạn.
-  // Hàm này sẽ không được tạo lại mỗi lần render nữa.
+  const refetchMyAssets = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-player-assets', { body: { roomCode, userId: currentUserId } });
+      if (error || data.error) throw new Error(error?.message || data.error);
+      if (data) setMyAssets({ lands: data.lands, businessTiles: data.businessTiles });
+    } catch (e) {
+      console.error("Failed to refetch assets:", e);
+    }
+  }, [roomCode, currentUserId, setMyAssets]);
+
   const handleGameUpdate = useCallback((payload: any) => {
-    // Lấy myPlayerId trực tiếp từ store khi cần, thay vì dựa vào dependency
     const myPlayerId = useGameStore.getState().players.find(p => p.user_id === getAnonymousUserId())?.id;
 
-    if (payload.type === 'PLAYER_MOVED') {
-      setLastDiceRoll({ playerName: payload.playerName, dice1: payload.dice1, dice2: payload.dice2, specialDie: payload.specialDie });
-      setTimeout(() => setLastDiceRoll(null), 4000);
+    switch (payload.type) {
+      case 'PLAYER_MOVED':
+        setLastDiceRoll({ playerName: payload.playerName, dice1: payload.dice1, dice2: payload.dice2, specialDie: payload.specialDie });
+        setTimeout(() => setLastDiceRoll(null), 4000);
 
-      if (payload.tileAction) {
-        let actionMessage = '';
-        if (payload.tileAction.type === 'drawn_land') actionMessage = `${payload.playerName} rút được Sổ Đỏ [${String.fromCharCode(65 + payload.tileAction.data.x_coord)}${payload.tileAction.data.y_coord + 1}]!`;
-        else if (payload.tileAction.type === 'drawn_business') actionMessage = `${payload.playerName} rút được 2 Mảnh Ghép Kinh Doanh!`;
-        setLastAction(actionMessage);
-        setTimeout(() => setLastAction(null), 4000);
-        
-        if (payload.playerId === myPlayerId) {
-          // Gọi trực tiếp setMyAssets từ store
-          supabase.functions.invoke('get-player-assets', { body: { roomCode, userId: getAnonymousUserId() } })
-            .then(({ data, error }) => {
-              if (error || data.error) console.error("Failed to refetch assets:", error || data.error);
-              else if (data) useGameStore.getState().setMyAssets({ lands: data.lands, businessTiles: data.businessTiles });
-            });
+        if (payload.tileAction) {
+          let actionMessage = '';
+          if (payload.tileAction.type === 'drawn_land') actionMessage = `${payload.playerName} rút được Sổ Đỏ [${String.fromCharCode(65 + payload.tileAction.data.x_coord)}${payload.tileAction.data.y_coord + 1}]!`;
+          else if (payload.tileAction.type === 'drawn_business') actionMessage = `${payload.playerName} rút được 2 Mảnh Ghép Kinh Doanh!`;
+          setLastAction(actionMessage);
+          setTimeout(() => setLastAction(null), 4000);
+          
+          if (payload.playerId === myPlayerId) {
+            refetchMyAssets();
+          }
         }
-      }
+        break;
+      
+      // SỬA LỖI 3: Thêm cơ chế refetch sau khi giao dịch
+      case 'OFFER_RESPONDED':
+        if (payload.newStatus === 'accepted' && payload.tradeDetails) {
+          const { fromPlayerId, toPlayerId } = payload.tradeDetails;
+          if (myPlayerId === fromPlayerId || myPlayerId === toPlayerId) {
+            setLastAction("Giao dịch thành công!");
+            setTimeout(() => setLastAction(null), 4000);
+            refetchMyAssets();
+          }
+        }
+        break;
     }
-    // Gửi payload vào store để xử lý logic state chính
+    
     useGameStore.getState().processBroadcastPayload(payload, myPlayerId);
-  }, [roomCode]); // Dependency array giờ đây chỉ chứa các giá trị ổn định
+  }, [refetchMyAssets]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -106,16 +121,19 @@ export default function GamePage() {
         setMyAssets({ lands: assetStateRes.data.lands, businessTiles: assetStateRes.data.businessTiles });
 
         const roomId = roomDataRes.data.id;
-        const channel = supabase.channel(`room-${roomId}`);
-        channel
-          .on('broadcast', { event: 'game_update' }, (message) => handleGameUpdate(message.payload))
-          .subscribe((status, err) => {
-            if (status === 'SUBSCRIBED') console.log(`✅ Successfully subscribed to channel: room-${roomId}`);
-            if (err) console.error("Subscription error:", err);
-          });
-        
-        channelRef.current = channel;
-
+        if (channelRef.current?.topic !== `realtime:room-${roomId}`) {
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current);
+            }
+            const channel = supabase.channel(`room-${roomId}`);
+            channel
+              .on('broadcast', { event: 'game_update' }, (message) => handleGameUpdate(message.payload))
+              .subscribe((status, err) => {
+                if (status === 'SUBSCRIBED') console.log(`✅ Successfully subscribed to channel: room-${roomId}`);
+                if (err) console.error("Subscription error:", err);
+              });
+            channelRef.current = channel;
+        }
       } catch (e: unknown) {
         const errorMessage = e instanceof Error ? e.message : "An unexpected error occurred.";
         setStoreError(errorMessage);
@@ -130,7 +148,6 @@ export default function GamePage() {
         channelRef.current = null;
       }
     };
-  // SỬA LỖI LỚN: Tối giản dependency array để useEffect chỉ chạy một lần khi cần.
   }, [roomCode, currentUserId, initialize, setMyAssets, setStoreError, handleGameUpdate]);
 
   const handleStartGame = async () => {
@@ -163,11 +180,7 @@ export default function GamePage() {
   };
 
   const handleSelectTile = (tileId: string) => {
-    if (selectedTileId === tileId) {
-      setSelectedTileId(null);
-    } else {
-      setSelectedTileId(tileId);
-    }
+    setSelectedTileId(prev => prev === tileId ? null : tileId);
   };
 
   const handleBuild = async (landId: string) => {
@@ -183,6 +196,7 @@ export default function GamePage() {
         body: { roomCode, userId: currentUserId, landId, businessTileId: selectedTileId }
       });
       setSelectedTileId(null);
+      refetchMyAssets(); // Refetch sau khi xây
     } catch (e: unknown) {
       setStoreError(e instanceof Error ? e.message : "Failed to build.");
     }
@@ -228,7 +242,6 @@ export default function GamePage() {
           </div>
 
           <div className="w-[350px] flex-shrink-0 bg-gray-900/50 rounded-lg p-4 flex flex-col">
-            {/* SỬA LỖI: Truyền tất cả dữ liệu cần thiết xuống MyHUD */}
             <MyHUD 
               myAssets={myAssets}
               isMyTurn={isMyTurn}
@@ -236,7 +249,6 @@ export default function GamePage() {
               onSelectTile={handleSelectTile}
               selectedTileId={selectedTileId}
             />
-            {/* SỬA LỖI: Truyền tất cả dữ liệu cần thiết xuống ActionPanel */}
             <ActionPanel 
               isMyTurn={isMyTurn}
               phase={phase}
@@ -277,35 +289,15 @@ export default function GamePage() {
     );
   }
   
+  // Giao diện Lobby
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-900 text-white">
-      <div className="w-full max-w-2xl p-8 space-y-6 bg-gray-800 rounded-lg shadow-lg">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold">Room Code: <span className="text-blue-400 tracking-widest">{roomCode.toUpperCase()}</span></h1>
-          <p className="mt-2 text-gray-400">Share this code with your friends to join!</p>
-        </div>
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Players ({players.length}/8)</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {players.map((player) => (
-              <div key={player.id} className="flex items-center p-3 bg-gray-700 rounded-md">
-                {player.is_host ? <Crown className="w-6 h-6 mr-3 text-yellow-400" /> : <User className="w-6 h-6 mr-3 text-gray-400" />}
-                <span className="font-medium">{player.nickname}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        {currentPlayer?.is_host && (
-          <button
-            onClick={handleStartGame}
-            className="w-full py-3 mt-4 font-bold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-gray-500"
-          >
-            Start Game
-          </button>
-        )}
-        {error && <p className="mt-4 text-center text-red-400">{error}</p>}
-      </div>
-    </div>
+    <Lobby 
+      roomCode={roomCode}
+      players={players}
+      isHost={currentPlayer?.is_host || false}
+      onStartGame={handleStartGame}
+      error={error}
+    />
   );
 }
 
