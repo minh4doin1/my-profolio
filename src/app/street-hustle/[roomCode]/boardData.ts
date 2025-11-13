@@ -61,4 +61,4 @@ export const boardTiles: BoardTile[] = [
   { id: 41, name: 'Chợ Đen', type: 'market', position: 'right' },
   { id: 42, name: 'Đất Đai', type: 'property', position: 'right' },
   { id: 43, name: 'Đất Đai', type: 'property', position: 'right' },
-];
+]; 
