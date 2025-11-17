@@ -5,6 +5,16 @@ import { immer } from 'zustand/middleware/immer';
 type GamePhase = 'lobby' | 'movement' | 'trading' | 'building' | 'income';
 type GameStatus = 'loading' | 'lobby' | 'ingame' | 'error';
 
+export type PlayerLand = {
+  id: string;
+  name: string; // e.g., "A1", "C5"
+};
+
+export type PlayerBusinessTile = {
+  id: string;
+  tile_type: string;
+};
+
 export type Player = {
   id: string;
   user_id: string;
@@ -13,7 +23,10 @@ export type Player = {
   position_on_path: number;
   color: string;
   gold: number;
+  lands: PlayerLand[];
+  business_tiles_in_hand: PlayerBusinessTile[];
 };
+
 
 export type Land = {
   id: string;
@@ -21,7 +34,6 @@ export type Land = {
   y_coord: number;
   owner_player_id: string | null;
   business_tile_id: string | null;
-  // SỬA LỖI 1: Đổi tên thuộc tính để khớp với kết quả trả về của Supabase JOIN
   business_tiles: { tile_type: string } | null; 
   land_type: 'buildable' | 'road';
 };
@@ -65,7 +77,7 @@ type OfferRespondedPayload = {
   }
 };
 type BuildingPlacedPayload = { type: 'BUILDING_PLACED', playerId: string, land: Land, tile: BusinessTile };
-
+type MapCreatedPayload = { type: 'MAP_CREATED', lands: Land[] };
 type GameUpdatePayload = 
   | PlayerJoinedPayload 
   | GameStartedPayload 
@@ -73,7 +85,8 @@ type GameUpdatePayload =
   | PhaseChangedPayload 
   | NewOfferPayload 
   | OfferRespondedPayload
-  | BuildingPlacedPayload;
+  | BuildingPlacedPayload
+  | MapCreatedPayload;
 
 // --- STORE STRUCTURE ---
 interface GameState {
@@ -135,8 +148,14 @@ export const useGameStore = create<GameState & GameActions>()(
         case 'PLAYER_JOINED': {
           const newPlayer = payload.newPlayer;
           if (!state.players.some((p: Player) => p.id === newPlayer.id)) {
-            const newPlayerWithColor = { ...newPlayer, color: PLAYER_COLORS[state.players.length % PLAYER_COLORS.length] };
-            state.players.push(newPlayerWithColor);
+            // Đảm bảo người chơi mới luôn có các mảng tài sản
+            const completeNewPlayer = {
+              ...newPlayer,
+              color: PLAYER_COLORS[state.players.length % PLAYER_COLORS.length],
+              lands: newPlayer.lands || [],
+              business_tiles_in_hand: newPlayer.business_tiles_in_hand || [],
+            };
+            state.players.push(completeNewPlayer);
           }
           break;
         }
@@ -145,6 +164,9 @@ export const useGameStore = create<GameState & GameActions>()(
           state.phase = 'movement';
           state.roundNumber = 1;
           state.currentTurnPlayerId = payload.startingPlayerId;
+          break;
+        case 'MAP_CREATED':
+          state.lands = payload.lands;
           break;
         case 'PLAYER_MOVED': {
           const playerIndex = state.players.findIndex((p: Player) => p.id === payload.playerId);
@@ -159,6 +181,7 @@ export const useGameStore = create<GameState & GameActions>()(
             if (landIndex !== -1) {
               state.lands[landIndex].owner_player_id = updatedLand.owner_player_id;
             }
+            // TODO: Update player asset list in a future refactor for consistency
           }
           break;
         }
@@ -184,39 +207,64 @@ export const useGameStore = create<GameState & GameActions>()(
           const { offerId, newStatus, updatedAssets, tradeDetails } = payload;
           state.offers = state.offers.filter((o: Offer) => o.id !== offerId);
           
-          if (newStatus === 'accepted') {
-            if (updatedAssets) {
-              state.players.forEach((player: Player) => {
-                if (updatedAssets[player.id]) {
-                  player.gold = updatedAssets[player.id].gold;
-                }
-              });
-            }
-            if (tradeDetails) {
-              // Cập nhật state.lands chung
-              state.lands.forEach(land => {
-                if (tradeDetails.lands.from.includes(land.id)) land.owner_player_id = tradeDetails.toPlayerId;
-                if (tradeDetails.lands.to.includes(land.id)) land.owner_player_id = tradeDetails.fromPlayerId;
-              });
+          if (newStatus === 'accepted' && tradeDetails) {
+            // --- MODIFICATION START ---
+            const fromPlayer = state.players.find(p => p.id === tradeDetails.fromPlayerId);
+            const toPlayer = state.players.find(p => p.id === tradeDetails.toPlayerId);
 
-              // SỬA LỖI 2: Cập nhật state.myAssets
-              if (myPlayerId === tradeDetails.fromPlayerId) {
-                // Tôi là người gửi, tôi mất đất/thẻ 'from' và nhận đất/thẻ 'to'
-                // (Hiện tại chưa hỗ trợ nhận đất/thẻ, chỉ cần xử lý mất)
-                state.myAssets.lands = state.myAssets.lands.filter(l => !tradeDetails.lands.from.includes(l.id));
-                state.myAssets.businessTiles = state.myAssets.businessTiles.filter(t => !tradeDetails.tiles.from.includes(t.id));
-              } else if (myPlayerId === tradeDetails.toPlayerId) {
-                // Tôi là người nhận, tôi nhận đất/thẻ 'from' và mất đất/thẻ 'to'
-                // (Hiện tại chưa hỗ trợ mất đất/thẻ, chỉ cần xử lý nhận)
-                tradeDetails.lands.from.forEach(landId => {
-                  const landToAdd = state.lands.find(l => l.id === landId);
-                  if (landToAdd && !state.myAssets.lands.some(l => l.id === landId)) {
-                    state.myAssets.lands.push(landToAdd);
-                  }
-                });
-                // Logic tương tự cho business tiles nếu cần
-              }
+            if (!fromPlayer || !toPlayer) {
+              console.error("Could not find players involved in the trade.");
+              return; // Exit if players aren't found
             }
+
+            // 1. Cập nhật Vàng (nếu có)
+            if (updatedAssets) {
+              if (updatedAssets[fromPlayer.id]) fromPlayer.gold = updatedAssets[fromPlayer.id].gold;
+              if (updatedAssets[toPlayer.id]) toPlayer.gold = updatedAssets[toPlayer.id].gold;
+            }
+
+            // 2. Cập nhật Sổ Đỏ (Lands)
+            // Lấy thông tin chi tiết của các Sổ Đỏ được trao đổi từ state.lands chung
+            const landsFromSender = fromPlayer.lands.filter(l => tradeDetails.lands.from.includes(l.id));
+            const landsFromReceiver = toPlayer.lands.filter(l => tradeDetails.lands.to.includes(l.id));
+            
+            // Xóa Sổ Đỏ khỏi người cũ và thêm vào người mới
+            fromPlayer.lands = fromPlayer.lands.filter(l => !tradeDetails.lands.from.includes(l.id));
+            toPlayer.lands.push(...landsFromSender);
+            
+            toPlayer.lands = toPlayer.lands.filter(l => !tradeDetails.lands.to.includes(l.id));
+            fromPlayer.lands.push(...landsFromReceiver);
+
+            // 3. Cập nhật Mảnh Ghép (Business Tiles)
+            const tilesFromSender = fromPlayer.business_tiles_in_hand.filter(t => tradeDetails.tiles.from.includes(t.id));
+            const tilesFromReceiver = toPlayer.business_tiles_in_hand.filter(t => tradeDetails.tiles.to.includes(t.id));
+
+            // Xóa Mảnh Ghép khỏi người cũ và thêm vào người mới
+            fromPlayer.business_tiles_in_hand = fromPlayer.business_tiles_in_hand.filter(t => !tradeDetails.tiles.from.includes(t.id));
+            toPlayer.business_tiles_in_hand.push(...tilesFromSender);
+
+            toPlayer.business_tiles_in_hand = toPlayer.business_tiles_in_hand.filter(t => !tradeDetails.tiles.to.includes(t.id));
+            fromPlayer.business_tiles_in_hand.push(...tilesFromReceiver);
+
+
+            // 4. Cập nhật state.lands chung (source of truth for ownership)
+            state.lands.forEach(land => {
+              if (tradeDetails.lands.from.includes(land.id)) land.owner_player_id = tradeDetails.toPlayerId;
+              if (tradeDetails.lands.to.includes(land.id)) land.owner_player_id = tradeDetails.fromPlayerId;
+            });
+
+            // 5. Cập nhật myAssets nếu người chơi hiện tại có liên quan
+              if (myPlayerId === fromPlayer.id || myPlayerId === toPlayer.id) {
+                  const currentPlayerAfterTrade = myPlayerId === fromPlayer.id ? fromPlayer : toPlayer;
+                  const newLandIds = new Set(currentPlayerAfterTrade.lands.map(l => l.id));
+
+                  // Lọc lại từ `state.lands` (nguồn chân lý) để đảm bảo đúng type `Land[]`
+                  state.myAssets.lands = state.lands.filter(land => newLandIds.has(land.id));
+
+                  // Gán lại business tiles. Type `PlayerBusinessTile` và `BusinessTile` có cấu trúc tương thích.
+                  state.myAssets.businessTiles = currentPlayerAfterTrade.business_tiles_in_hand;
+              }
+            // --- MODIFICATION END ---
           }
           break;
         }
@@ -224,7 +272,6 @@ export const useGameStore = create<GameState & GameActions>()(
           const landIndex = state.lands.findIndex(l => l.id === payload.land.id);
           if (landIndex !== -1) {
             state.lands[landIndex].business_tile_id = payload.tile.id;
-            // Sửa tên thuộc tính
             state.lands[landIndex].business_tiles = { tile_type: payload.tile.tile_type };
           }
 
@@ -233,6 +280,7 @@ export const useGameStore = create<GameState & GameActions>()(
               t => t.id !== payload.tile.id
             );
           }
+          // TODO: Update player asset list in a future refactor for consistency
           break;
         }
       }

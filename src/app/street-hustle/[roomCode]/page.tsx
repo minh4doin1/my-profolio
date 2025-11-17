@@ -150,14 +150,21 @@ export default function GamePage() {
     };
   }, [roomCode, currentUserId, initialize, setMyAssets, setStoreError, handleGameUpdate]);
 
-  const handleStartGame = async () => {
-    try {
-      const { error } = await supabase.functions.invoke('start-game', { body: { roomCode, userId: currentUserId } });
-      if (error) throw new Error(error.message);
-    } catch (e: unknown) {
-      setStoreError(e instanceof Error ? e.message : "Failed to start game.");
-    }
-  };
+    const handleStartGame = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('start-game', { body: { roomCode, userId: currentUserId } });
+        if (error) throw new Error(error.message);
+        if (data.error) throw new Error(data.error);
+
+        // Cập nhật store của host ngay lập tức với dữ liệu trả về
+        if (data.lands) {
+          useGameStore.getState().processBroadcastPayload({ type: 'MAP_CREATED', lands: data.lands }, currentPlayer?.id);
+        }
+
+      } catch (e: unknown) {
+        setStoreError(e instanceof Error ? e.message : "Failed to start game.");
+      }
+    };
 
   const handleRollDice = async () => {
     try {

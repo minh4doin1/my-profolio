@@ -1,9 +1,9 @@
-// src/app/street-hustle/[roomCode]/TradingModal.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Send, MapPin, Building2, Coins } from 'lucide-react';
+import { X, Send, MapPin, Building2, Coins, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 // Type definitions
@@ -22,8 +22,7 @@ interface TradingModalProps {
   currentUserId: string;
 }
 
-// Component con để hiển thị một tài sản có thể chọn
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// --- NO CHANGE TO THIS SUB-COMPONENT ---
 const AssetItem = ({ item, onSelect, isSelected, type }: { item: any, onSelect: () => void, isSelected: boolean, type: 'land' | 'tile' }) => {
   const formatName = () => {
     if (type === 'land') return `${String.fromCharCode(65 + item.x_coord)}${item.y_coord + 1}`;
@@ -54,18 +53,58 @@ export default function TradingModal({
 }: TradingModalProps) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
   
-  // State cho lời chào mời
+  // --- MODIFICATION START ---
+  // State cho tài sản của người chơi mục tiêu
+  const [targetPlayerAssets, setTargetPlayerAssets] = useState<{ lands: Land[], businessTiles: BusinessTile[] }>({ lands: [], businessTiles: [] });
+  const [isFetchingAssets, setIsFetchingAssets] = useState(false);
+
+  // State cho lời chào mời (Bạn đưa)
   const [myGoldOffer, setMyGoldOffer] = useState(0);
   const [myLandOfferIds, setMyLandOfferIds] = useState<string[]>([]);
   const [myTileOfferIds, setMyTileOfferIds] = useState<string[]>([]);
   
+  // State cho yêu cầu (Bạn nhận)
   const [theirGoldOffer, setTheirGoldOffer] = useState(0);
-  // Trong tương lai có thể thêm state để yêu cầu đất/thẻ của họ
+  const [theirLandOfferIds, setTheirLandOfferIds] = useState<string[]>([]);
+  const [theirTileOfferIds, setTheirTileOfferIds] = useState<string[]>([]);
+  // --- MODIFICATION END ---
 
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState('');
 
   const otherPlayers = useMemo(() => players.filter(p => p.id !== myPlayerId), [players, myPlayerId]);
+
+  // --- MODIFICATION START ---
+  // Effect để fetch tài sản khi chọn người chơi mới
+  useEffect(() => {
+    if (!selectedPlayerId) {
+      setTargetPlayerAssets({ lands: [], businessTiles: [] });
+      return;
+    }
+
+    const fetchTargetAssets = async () => {
+      setIsFetchingAssets(true);
+      // Reset yêu cầu cũ
+      setTheirGoldOffer(0);
+      setTheirLandOfferIds([]);
+      setTheirTileOfferIds([]);
+      try {
+        const { data, error: funcError } = await supabase.functions.invoke('get-player-assets-public', {
+          body: { playerId: selectedPlayerId }
+        });
+        if (funcError) throw new Error(funcError.message);
+        setTargetPlayerAssets(data);
+      } catch (e: any) {
+        setError(`Không thể lấy tài sản của người chơi: ${e.message}`);
+        setTargetPlayerAssets({ lands: [], businessTiles: [] });
+      } finally {
+        setIsFetchingAssets(false);
+      }
+    };
+
+    fetchTargetAssets();
+  }, [selectedPlayerId]);
+  // --- MODIFICATION END ---
 
   const resetForm = () => {
     setSelectedPlayerId('');
@@ -73,7 +112,10 @@ export default function TradingModal({
     setMyLandOfferIds([]);
     setMyTileOfferIds([]);
     setTheirGoldOffer(0);
+    setTheirLandOfferIds([]);
+    setTheirTileOfferIds([]);
     setError('');
+    setTargetPlayerAssets({ lands: [], businessTiles: [] });
   };
 
   const handleClose = () => {
@@ -89,6 +131,8 @@ export default function TradingModal({
     setIsSending(true);
     setError('');
 
+    // --- MODIFICATION START ---
+    // Xây dựng payload offer đầy đủ
     const offerDetails = {
       from: {
         ...(myGoldOffer > 0 && { gold: myGoldOffer }),
@@ -97,8 +141,11 @@ export default function TradingModal({
       },
       to: {
         ...(theirGoldOffer > 0 && { gold: theirGoldOffer }),
+        ...(theirLandOfferIds.length > 0 && { landIds: theirLandOfferIds }),
+        ...(theirTileOfferIds.length > 0 && { businessTileIds: theirTileOfferIds }),
       }
     };
+    // --- MODIFICATION END ---
 
     try {
       const { error: funcError } = await supabase.functions.invoke('create-offer', {
@@ -112,7 +159,6 @@ export default function TradingModal({
       if (funcError) throw new Error(funcError.message);
       
       handleClose();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -142,7 +188,7 @@ export default function TradingModal({
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.9, y: 20 }}
-            className="bg-gray-800 text-white rounded-lg shadow-xl w-full max-w-3xl"
+            className="bg-gray-800 text-white rounded-lg shadow-xl w-full max-w-4xl" // Tăng chiều rộng
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center border-b border-gray-700 p-4">
@@ -187,14 +233,31 @@ export default function TradingModal({
                     </div>
                   </div>
                 </div>
+                
                 {/* Cột của họ */}
-                <div className="p-4 bg-gray-900/50 rounded space-y-3">
+                <div className="p-4 bg-gray-900/50 rounded space-y-3 relative">
                   <h3 className="font-bold text-lg text-green-400">Bạn nhận</h3>
+                  {isFetchingAssets && (
+                    <div className="absolute inset-0 bg-gray-900/70 flex items-center justify-center rounded">
+                      <Loader2 className="animate-spin" size={32} />
+                    </div>
+                  )}
                   <div>
                     <label className="flex items-center gap-2"><Coins size={16} /> Vàng:</label>
-                    <input type="number" min="0" value={theirGoldOffer} onChange={e => setTheirGoldOffer(Math.max(0, Number(e.target.value)))} className="w-full p-1 bg-gray-700 rounded mt-1" />
+                    <input type="number" min="0" value={theirGoldOffer} onChange={e => setTheirGoldOffer(Math.max(0, Number(e.target.value)))} className="w-full p-1 bg-gray-700 rounded mt-1" disabled={!selectedPlayerId} />
                   </div>
-                  {/* TODO: Thêm UI chọn Sổ Đỏ và Mảnh Ghép của họ */}
+                  <div>
+                    <label className="flex items-center gap-2"><MapPin size={16} /> Sổ Đỏ:</label>
+                    <div className="flex flex-wrap gap-2 mt-1 p-2 bg-black/20 rounded min-h-[40px]">
+                      {targetPlayerAssets.lands.map(land => <AssetItem key={land.id} item={land} type="land" isSelected={theirLandOfferIds.includes(land.id)} onSelect={() => toggleSelection(land.id, theirLandOfferIds, setTheirLandOfferIds)} />)}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2"><Building2 size={16} /> Kinh Doanh:</label>
+                    <div className="flex flex-wrap gap-2 mt-1 p-2 bg-black/20 rounded min-h-[40px]">
+                      {targetPlayerAssets.businessTiles.map(tile => <AssetItem key={tile.id} item={tile} type="tile" isSelected={theirTileOfferIds.includes(tile.id)} onSelect={() => toggleSelection(tile.id, theirTileOfferIds, setTheirTileOfferIds)} />)}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -203,7 +266,7 @@ export default function TradingModal({
               {error && <p className="text-red-500 mr-4 text-sm">{error}</p>}
               <button
                 onClick={handleSendOffer}
-                disabled={isSending || !selectedPlayerId}
+                disabled={isSending || !selectedPlayerId || isFetchingAssets}
                 className="px-6 py-2 font-bold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-gray-500 flex items-center gap-2"
               >
                 <Send size={18} />
